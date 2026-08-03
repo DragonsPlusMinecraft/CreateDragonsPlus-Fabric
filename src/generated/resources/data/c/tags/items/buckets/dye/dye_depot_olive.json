@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "create_dragons_plus:dye_depot_olive_dye_bucket",
+      "required": false
+    }
+  ]
+}

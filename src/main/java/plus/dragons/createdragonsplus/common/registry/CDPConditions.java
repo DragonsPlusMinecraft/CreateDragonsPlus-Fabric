@@ -18,46 +18,26 @@
 
 package plus.dragons.createdragonsplus.common.registry;
 
-import com.google.gson.JsonObject;
+import net.fabricmc.fabric.api.resource.conditions.v1.ResourceConditions;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.GsonHelper;
-import net.minecraftforge.common.crafting.CraftingHelper;
-import net.minecraftforge.common.crafting.conditions.IConditionSerializer;
-import net.minecraftforge.eventbus.api.IEventBus;
 import plus.dragons.createdragonsplus.common.CDPCommon;
 import plus.dragons.createdragonsplus.config.FeaturesConfig;
-import plus.dragons.createdragonsplus.config.FeaturesConfig.ConfigFeature;
 
 public final class CDPConditions {
     public static final ResourceLocation CONFIG_FEATURE_ID = CDPCommon.asResource("config_feature");
-    public static final IConditionSerializer<ConfigFeature> CONFIG_FEATURE = new IConditionSerializer<>() {
-        @Override
-        public void write(JsonObject json, ConfigFeature value) {
-            json.addProperty("feature", value.getFeatureId().toString());
-        }
-
-        @Override
-        public ConfigFeature read(JsonObject json) {
-            ResourceLocation id = new ResourceLocation(GsonHelper.getAsString(json, "feature"));
-            ConfigFeature feature = FeaturesConfig.getFeatures().get(id);
-            if (feature == null)
-                throw new IllegalArgumentException("No config feature with id [" + id + "] exists");
-            return feature;
-        }
-
-        @Override
-        public ResourceLocation getID() {
-            return CONFIG_FEATURE_ID;
-        }
-    };
-
     private static boolean registered;
 
-    public static void register(IEventBus modBus) {
-        if (!registered) {
-            CraftingHelper.register(CONFIG_FEATURE);
-            registered = true;
-        }
+    public static void register() {
+        if (registered)
+            return;
+        registered = true;
+        ResourceConditions.register(CONFIG_FEATURE_ID, json -> {
+            ResourceLocation id = new ResourceLocation(GsonHelper.getAsString(json, "feature"));
+            if (!FeaturesConfig.getFeatures().containsKey(id))
+                throw new IllegalArgumentException("No config feature with id [" + id + "] exists");
+            return FeaturesConfig.isFeatureEnabled(id);
+        });
     }
 
     private CDPConditions() {}

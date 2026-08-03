@@ -21,6 +21,7 @@ package plus.dragons.createdragonsplus.client.ponder.scenes;
 import com.simibubi.create.content.kinetics.mixer.MechanicalMixerBlockEntity;
 import com.simibubi.create.content.processing.basin.BasinBlockEntity;
 import com.simibubi.create.foundation.ponder.CreateSceneBuilder;
+import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
 import net.createmod.catnip.math.Pointing;
 import net.createmod.ponder.api.scene.SceneBuilder;
 import net.createmod.ponder.api.scene.SceneBuildingUtil;
@@ -33,9 +34,10 @@ import net.minecraft.world.entity.animal.Sheep;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.fluids.FluidStack;
+import plus.dragons.createdragonsplus.common.fluids.CDPFluidUnits;
 import plus.dragons.createdragonsplus.common.registry.CDPFluids;
 
 public class CDPFluidScenes {
@@ -63,7 +65,8 @@ public class CDPFluidScenes {
                 .withItem(Items.WATER_BUCKET.getDefaultInstance());
         scene.world().createItemOnBeltLike(basin, Direction.UP, Items.LIME_DYE.getDefaultInstance());
         scene.world().modifyBlockEntity(basin, BasinBlockEntity.class, be -> {
-            be.getTanks().getFirst().getPrimaryHandler().setFluid(new FluidStack(Fluids.WATER, 4000));
+            be.getTanks().getFirst().getPrimaryHandler()
+                    .setFluid(new FluidStack(Fluids.WATER, 4 * CDPFluidUnits.BUCKET));
         });
         scene.idle(10);
         scene.world().setKineticSpeed(util.select().position(mixer), 32);
@@ -71,7 +74,9 @@ public class CDPFluidScenes {
         scene.idle(40);
         scene.world().modifyBlockEntity(basin, BasinBlockEntity.class, be -> {
             be.getTanks().getFirst().getPrimaryHandler()
-                    .setFluid(new FluidStack(CDPFluids.DYES_BY_VARIANT.get(new ResourceLocation("lime")).getSource(), 4000));
+                    .setFluid(new FluidStack(
+                            (Fluid) CDPFluids.DYES_BY_VARIANT.get(new ResourceLocation("lime")).getSource(),
+                            4 * CDPFluidUnits.BUCKET));
         });
         scene.idle(45);
 
@@ -87,7 +92,8 @@ public class CDPFluidScenes {
         scene.world().modifyBlockEntity(mixer, MechanicalMixerBlockEntity.class, MechanicalMixerBlockEntity::startProcessingBasin);
         scene.idle(40);
         scene.world().modifyBlockEntity(basin, BasinBlockEntity.class, be -> {
-            be.getTanks().getFirst().getPrimaryHandler().setFluid(new FluidStack(Fluids.WATER, 4000));
+            be.getTanks().getFirst().getPrimaryHandler()
+                    .setFluid(new FluidStack(Fluids.WATER, 4 * CDPFluidUnits.BUCKET));
         });
         scene.idle(40);
 

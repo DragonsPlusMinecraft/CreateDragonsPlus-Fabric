@@ -19,14 +19,13 @@
 package plus.dragons.createdragonsplus.common.registry;
 
 import net.minecraft.advancements.CriteriaTriggers;
-import net.minecraftforge.eventbus.api.IEventBus;
 import plus.dragons.createdragonsplus.common.CDPCommon;
 import plus.dragons.createdragonsplus.common.advancements.criterion.StatTrigger;
 
 public class CDPCriterions {
     public static final StatTrigger STAT = new StatTrigger(CDPCommon.asResource("stat"));
 
-    public static void register(IEventBus modBus) {
+    public static void register() {
         CriteriaTriggers.register(STAT);
     }
 }

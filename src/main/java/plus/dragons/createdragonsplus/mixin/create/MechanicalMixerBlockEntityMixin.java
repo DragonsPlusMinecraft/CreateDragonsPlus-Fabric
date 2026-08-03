@@ -28,7 +28,6 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -52,12 +51,9 @@ public abstract class MechanicalMixerBlockEntityMixin extends BasinOperatingBloc
             var basin = getBasin();
             if (basin.isEmpty())
                 return;
-            var tanks = basin.get().getCapability(ForgeCapabilities.FLUID_HANDLER).orElse(null);
-            if (tanks == null)
-                return;
-            for (int i = 0; i < tanks.getTanks(); i++) {
-                var fluid = tanks.getFluidInTank(i);
-                if (fluid.getFluid().is(CDPFluids.COMMON_TAGS.dragonBreath)) {
+            var tanks = basin.get().inputTank.getCapability();
+            for (var tank : tanks.nonEmptyViews()) {
+                if (tank.getResource().getFluid().is(CDPFluids.COMMON_TAGS.dragonBreath)) {
                     var recipes = PotionMixingRecipes.BY_ITEM.get(Items.DRAGON_BREATH);
                     if (recipes == null)
                         return;
@@ -83,17 +79,15 @@ public abstract class MechanicalMixerBlockEntityMixin extends BasinOperatingBloc
 
         var basin = optionalBasin.get();
         var inputItems = basin.getInputInventory();
-        var inputFluids = basin.inputTank.getCapability().orElse(null);
-        if (inputFluids == null)
-            return;
+        var inputFluids = basin.inputTank.getCapability();
         var matchingRecipes = cir.getReturnValue();
         for (var variant : DyeVariantRegistry.all()) {
             var fluidTag = CDPFluids.COMMON_TAGS.dyesByVariant.get(variant.id());
             if (fluidTag == null)
                 continue;
             boolean hasFluid = false;
-            for (int tank = 0; tank < inputFluids.getTanks(); tank++) {
-                if (inputFluids.getFluidInTank(tank).getFluid().is(fluidTag)) {
+            for (var tank : inputFluids.nonEmptyViews()) {
+                if (tank.getResource().getFluid().is(fluidTag)) {
                     hasFluid = true;
                     break;
                 }
@@ -102,7 +96,7 @@ public abstract class MechanicalMixerBlockEntityMixin extends BasinOperatingBloc
                 continue;
 
             var seen = new HashSet<ItemStackKey>();
-            for (int slot = 0; slot < inputItems.getSlots(); slot++) {
+            for (int slot = 0; slot < inputItems.getSlotCount(); slot++) {
                 var input = inputItems.getStackInSlot(slot);
                 if (input.isEmpty() || !seen.add(ItemStackKey.of(input)))
                     continue;

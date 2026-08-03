@@ -18,28 +18,24 @@
 
 package plus.dragons.createdragonsplus.common.fluids;
 
-import com.mojang.blaze3d.shaders.FogShape;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.simibubi.create.AllFluids;
-import com.tterrag.registrate.builders.FluidBuilder.FluidTypeFactory;
-import java.util.function.Consumer;
+import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
+import io.github.fabricators_of_create.porting_lib.fluids.FluidType;
+import io.github.fabricators_of_create.porting_lib.fluids.sound.SoundActions;
+import java.util.Optional;
 import java.util.function.Supplier;
-import net.minecraft.client.Camera;
-import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.FogRenderer.FogMode;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariantAttributeHandler;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.material.FluidState;
-import net.minecraftforge.client.extensions.common.IClientFluidTypeExtensions;
-import net.minecraftforge.fluids.FluidStack;
 import org.joml.Vector3f;
-import plus.dragons.createdragonsplus.util.CodeReference;
 
-@CodeReference(targets = "com.simibubi.create.AllFluids.SolidRenderedPlaceableFluidType", source = "create", license = "mit")
-public class SolidRenderFluidType extends AllFluids.TintedFluidType {
+/** Common fluid behaviour plus the data consumed by the Fabric client renderer. */
+public class SolidRenderFluidType extends FluidType implements FluidVariantAttributeHandler {
     protected static final int NO_ALPHA = 0x00FFFFFF;
-    private static final float BASE_WATER_FOG_DISTANCE = 96.0F;
     private final int tintColor;
     private final int blockTintColor;
     private final ResourceLocation stillTexture;
@@ -47,8 +43,9 @@ public class SolidRenderFluidType extends AllFluids.TintedFluidType {
     private final Vector3f fogColor;
     private final Supplier<Float> fogDistanceModifier;
 
-    protected SolidRenderFluidType(Properties properties, ResourceLocation stillTexture, ResourceLocation flowingTexture, int tintColor, Vector3f fogColor, Supplier<Float> fogDistanceModifier) {
-        super(properties, stillTexture, flowingTexture);
+    protected SolidRenderFluidType(Properties properties, ResourceLocation stillTexture, ResourceLocation flowingTexture,
+            int tintColor, Vector3f fogColor, Supplier<Float> fogDistanceModifier) {
+        super(properties);
         this.tintColor = tintColor;
         this.blockTintColor = tintColor & NO_ALPHA;
         this.stillTexture = stillTexture;
@@ -57,80 +54,61 @@ public class SolidRenderFluidType extends AllFluids.TintedFluidType {
         this.fogDistanceModifier = fogDistanceModifier;
     }
 
-    public static FluidTypeFactory create(int tintColor, Vector3f fogColor, Supplier<Float> fogDistanceModifier) {
-        return (properties, stillTexture, flowingTexture) -> new SolidRenderFluidType(properties,
-                stillTexture,
-                flowingTexture,
-                tintColor,
-                fogColor,
-                fogDistanceModifier);
+    public int getTintColor(FluidStack stack) {
+        return tintColor;
     }
 
-    public static FluidTypeFactory create(Vector3f fogColor, Supplier<Float> fogDistanceModifier) {
-        return (properties, stillTexture, flowingTexture) -> new SolidRenderFluidType(properties,
-                stillTexture,
-                flowingTexture,
-                NO_TINT,
-                fogColor,
-                fogDistanceModifier);
+    public int getTintColor() {
+        return tintColor;
     }
 
-    @Override
-    protected int getTintColor(FluidStack stack) {
-        return this.tintColor;
-    }
-
-    @Override
     public int getTintColor(FluidState state, BlockAndTintGetter world, BlockPos pos) {
-        return this.blockTintColor;
+        return blockTintColor;
+    }
+
+    public ResourceLocation getStillTexture() {
+        return stillTexture;
+    }
+
+    public ResourceLocation getFlowingTexture() {
+        return flowingTexture;
+    }
+
+    public Vector3f getCustomFogColor() {
+        return fogColor;
+    }
+
+    public float getFogDistanceModifier() {
+        return fogDistanceModifier.get();
     }
 
     @Override
-    public void initializeClient(Consumer<IClientFluidTypeExtensions> consumer) {
-        consumer.accept(new IClientFluidTypeExtensions() {
-            @Override
-            public ResourceLocation getStillTexture() {
-                return stillTexture;
-            }
-
-            @Override
-            public ResourceLocation getFlowingTexture() {
-                return flowingTexture;
-            }
-
-            @Override
-            public int getTintColor(FluidStack stack) {
-                return SolidRenderFluidType.this.getTintColor(stack);
-            }
-
-            @Override
-            public int getTintColor(FluidState state, BlockAndTintGetter getter, BlockPos pos) {
-                return SolidRenderFluidType.this.getTintColor(state, getter, pos);
-            }
-
-            @Override
-            public Vector3f modifyFogColor(Camera camera, float partialTick, ClientLevel level, int renderDistance, float darkenWorldAmount, Vector3f fluidFogColor) {
-                Vector3f customFogColor = SolidRenderFluidType.this.getCustomFogColor();
-                return customFogColor == null ? fluidFogColor : customFogColor;
-            }
-
-            @Override
-            public void modifyFogRender(Camera camera, FogMode mode, float renderDistance, float partialTick, float nearDistance, float farDistance, FogShape shape) {
-                float modifier = SolidRenderFluidType.this.getFogDistanceModifier();
-                RenderSystem.setShaderFogShape(FogShape.CYLINDER);
-                RenderSystem.setShaderFogStart(-8.0F);
-                RenderSystem.setShaderFogEnd(Math.max(0.25F, BASE_WATER_FOG_DISTANCE * modifier));
-            }
-        });
+    public Component getName(FluidVariant variant) {
+        return getDescription();
     }
 
     @Override
-    protected Vector3f getCustomFogColor() {
-        return this.fogColor;
+    public Optional<SoundEvent> getFillSound(FluidVariant variant) {
+        return Optional.ofNullable(getSound(SoundActions.BUCKET_FILL));
     }
 
     @Override
-    protected float getFogDistanceModifier() {
-        return this.fogDistanceModifier.get();
+    public Optional<SoundEvent> getEmptySound(FluidVariant variant) {
+        return Optional.ofNullable(getSound(SoundActions.BUCKET_EMPTY));
+    }
+
+    @Override
+    public int getLuminance(FluidVariant variant) {
+        return getLightLevel();
+    }
+
+    @Override
+    public int getTemperature(FluidVariant variant) {
+        return getTemperature();
+    }
+
+    @Override
+    public int getViscosity(FluidVariant variant, net.minecraft.world.level.Level world) {
+        return getViscosity();
     }
 }

@@ -19,13 +19,13 @@
 package plus.dragons.createdragonsplus.common.fluids.dragonBreath;
 
 import com.simibubi.create.api.effect.OpenPipeEffectHandler;
+import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
 import java.util.List;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
-import net.minecraftforge.fluids.FluidStack;
 
 public class DragonsBreathOpenPipeEffect implements OpenPipeEffectHandler {
     @Override

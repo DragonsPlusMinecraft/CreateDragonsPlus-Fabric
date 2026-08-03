@@ -18,18 +18,12 @@
 
 package plus.dragons.createdragonsplus.integration.dye_depot;
 
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLConstructModEvent;
-import plus.dragons.createdragonsplus.common.CDPCommon;
 import plus.dragons.createdragonsplus.integration.CDPIntegrationContributions;
 import plus.dragons.createdragonsplus.integration.ModIntegration;
 
-@Mod.EventBusSubscriber(modid = CDPCommon.ID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public class DyeDepotExtension {
-    @SubscribeEvent
-    public static void construct(final FMLConstructModEvent event) {
-        if (ModIntegration.DYE_DEPOT.enabled())
+    public static void register() {
+        if (ModIntegration.DYE_DEPOT.enabledForRegistration())
             CDPIntegrationContributions.registerDyeVariants(DyeDepotDyeVariants::register);
     }
 }

@@ -1,4 +1,5 @@
 {
+  "replace": false,
   "values": [
     "create_dragons_plus:dragon_breath_cauldron",
     "create_dragons_plus:fluid_hatch"

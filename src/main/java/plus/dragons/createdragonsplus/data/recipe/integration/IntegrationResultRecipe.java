@@ -21,12 +21,12 @@ package plus.dragons.createdragonsplus.data.recipe.integration;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import java.util.Map;
+import net.fabricmc.fabric.api.resource.conditions.v1.ConditionJsonProvider;
 import net.minecraft.data.recipes.FinishedRecipe;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeSerializer;
-import net.minecraftforge.common.crafting.conditions.ICondition;
 import org.jetbrains.annotations.Nullable;
 import plus.dragons.createdragonsplus.common.recipe.BaseRecipeBuilder;
 
@@ -119,7 +119,7 @@ public final class IntegrationResultRecipe {
         }
 
         @Override
-        public Builder withCondition(ICondition condition) {
+        public Builder withCondition(ConditionJsonProvider condition) {
             super.withCondition(condition);
             return this;
         }

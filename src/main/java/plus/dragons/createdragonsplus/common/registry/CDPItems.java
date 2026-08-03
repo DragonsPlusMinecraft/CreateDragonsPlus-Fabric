@@ -27,6 +27,7 @@ import com.simibubi.create.content.logistics.box.PackageStyles.PackageStyle;
 import com.tterrag.registrate.providers.ProviderType;
 import com.tterrag.registrate.util.entry.ItemEntry;
 import com.tterrag.registrate.util.nullness.NonNullBiConsumer;
+import io.github.fabricators_of_create.porting_lib.models.generators.ModelFile;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import net.minecraft.ChatFormatting;
@@ -35,9 +36,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.SmithingTemplateItem;
-import net.minecraftforge.client.model.generators.ModelFile;
-import net.minecraftforge.eventbus.api.IEventBus;
-import plus.dragons.createdragonsplus.client.texture.CDPGuiTextures;
 import plus.dragons.createdragonsplus.common.CDPCommon;
 import plus.dragons.createdragonsplus.common.fluids.dye.DyeVariantRegistry;
 import plus.dragons.createdragonsplus.data.tag.ItemTagRegistry;
@@ -78,7 +76,7 @@ public class CDPItems {
             .lang("Smithing Template")
             .register();
 
-    public static void register(IEventBus modBus) {
+    public static void register() {
         REGISTRATE.registerItemTags(COMMON_TAGS);
         REGISTRATE.registerItemTags(MOD_TAGS);
     }
@@ -109,7 +107,7 @@ public class CDPItems {
         public final TagKey<Item> dragonBreathBuckets = tag("buckets/dragon_breath", "Dragon Breath Buckets");
 
         protected CommonTags() {
-            super("forge");
+            super("c");
             for (var variant : DyeVariantRegistry.all()) {
                 var tag = tag("buckets/dye/" + variant.serializedName(), variant.displayName() + " Dye Buckets");
                 dyeBucketsByVariant.put(variant.id(), tag);

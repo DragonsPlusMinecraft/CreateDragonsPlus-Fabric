@@ -18,13 +18,12 @@
 
 package plus.dragons.createdragonsplus.mixin.create;
 
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import com.llamalad7.mixinextras.sugar.Local;
 import com.simibubi.create.api.effect.OpenPipeEffectHandler;
 import com.simibubi.create.content.fluids.OpenEndedPipe;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.capability.templates.FluidTank;
+import io.github.fabricators_of_create.porting_lib.transfer.callbacks.TransactionCallback;
+import io.github.fabricators_of_create.porting_lib.transfer.fluid.FluidTank;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
+import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 import org.spongepowered.asm.mixin.Dynamic;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -41,21 +40,17 @@ public abstract class OpenEndFluidHandlerMixin extends FluidTank {
     @Dynamic("Synthetic outer-class reference")
     OpenEndedPipe this$0;
 
-    private OpenEndFluidHandlerMixin(int capacity) {
+    private OpenEndFluidHandlerMixin(long capacity) {
         super(capacity);
     }
 
-    @WrapOperation(method = "fill", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/foundation/fluid/FluidHelper;copyStackWithAmount(Lnet/minecraftforge/fluids/FluidStack;I)Lnet/minecraftforge/fluids/FluidStack;"))
-    private FluidStack fill$copyStack(FluidStack resource, int amount, Operation<FluidStack> original, @Local OpenPipeEffectHandler handler) {
-        if (handler instanceof ConsumingOpenPipeEffectHandler) return resource.copy();
-        return original.call(resource, amount);
-    }
-
-    @Inject(method = "fill", at = @At("TAIL"))
-    private void fill$applyConsumingEffect(FluidStack resource, FluidAction action, CallbackInfoReturnable<Integer> cir, @Local OpenPipeEffectHandler handler) {
-        if (handler instanceof ConsumingOpenPipeEffectHandler) {
-            FluidStack remainder = ConsumingOpenPipeEffectHandler.getRemainder((ConsumingOpenPipeEffectHandler) handler, this$0, this.getFluid());
-            this.setFluid(remainder);
-        }
+    @Inject(method = "insert", at = @At("TAIL"))
+    private void insert$applyConsumingEffect(
+            FluidVariant resource, long maxAmount, TransactionContext transaction,
+            CallbackInfoReturnable<Long> cir) {
+        OpenPipeEffectHandler handler = OpenPipeEffectHandler.REGISTRY.get(resource.getFluid());
+        if (!(handler instanceof ConsumingOpenPipeEffectHandler consuming))
+            return;
+        TransactionCallback.onSuccess(transaction, () -> setFluid(ConsumingOpenPipeEffectHandler.getRemainder(consuming, this$0, getFluid())));
     }
 }

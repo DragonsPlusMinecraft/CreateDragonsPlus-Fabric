@@ -31,7 +31,6 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.material.MapColor;
-import net.minecraftforge.eventbus.api.IEventBus;
 import plus.dragons.createdragonsplus.common.CDPCommon;
 import plus.dragons.createdragonsplus.common.fluids.dye.DyeVariantRegistry;
 import plus.dragons.createdragonsplus.common.fluids.hatch.FluidHatchBlock;
@@ -49,7 +48,7 @@ public class CDPBlocks {
             .simpleItem()
             .register();
 
-    public static void register(IEventBus modBus) {
+    public static void register() {
         REGISTRATE.registerBlockTags(MOD_TAGS);
     }
 

@@ -33,8 +33,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.repository.Pack;
 import net.minecraft.server.packs.repository.RepositorySource;
-import net.minecraftforge.fml.ModContainer;
 import org.slf4j.Logger;
+import plus.dragons.createdragonsplus.common.CDPCommon;
 
 /** An in-memory data pack populated through vanilla data providers. */
 public final class RuntimePackResources extends DynamicPack implements RepositorySource, CachedOutput {
@@ -45,8 +45,8 @@ public final class RuntimePackResources extends DynamicPack implements Repositor
     private final DynamicPackSource source;
     private final PackOutput output = new PackOutput(OUTPUT_ROOT);
 
-    public RuntimePackResources(String name, ModContainer modContainer, PackType type, Pack.Position position) {
-        super(modContainer.getModInfo().getModId() + "/" + name, type);
+    public RuntimePackResources(String name, PackType type, Pack.Position position) {
+        super(CDPCommon.ID + ":" + name, type);
         this.type = type;
         this.source = new DynamicPackSource(packId(), type, position, this);
     }

@@ -40,11 +40,11 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
-import plus.dragons.createdragonsplus.client.renderer.blockentity.PartialModelBlockEntityRenderer;
+import plus.dragons.createdragonsplus.client.renderer.blockentity.BlazeBlockEntityRenderExtension;
 import plus.dragons.createdragonsplus.util.CodeReference;
 
 @CodeReference(value = BlazeBurnerRenderer.class, source = "create", license = "mit")
-public class BlazeBlockRenderer<T extends BlazeBlockEntity> extends SafeBlockEntityRenderer<T> implements PartialModelBlockEntityRenderer {
+public class BlazeBlockRenderer<T extends BlazeBlockEntity> extends SafeBlockEntityRenderer<T> {
     public BlazeBlockRenderer(BlockEntityRendererProvider.Context context) {}
 
     @Override
@@ -61,8 +61,11 @@ public class BlazeBlockRenderer<T extends BlazeBlockEntity> extends SafeBlockEnt
         boolean active = animation > 0.125f;
         int seed = blockEntity.hashCode();
         PartialModel blazeModel = BlazeBurnerRenderer.getBlazeModel(heatLevel, active);
-        PartialModel hatModel = blockEntity.getHatModel(heatLevel);
-        PartialModel gogglesModel = blockEntity.getGogglesModel(heatLevel);
+        BlazeBlockEntityRenderExtension renderExtension = blockEntity instanceof BlazeBlockEntityRenderExtension extension
+                ? extension
+                : null;
+        PartialModel hatModel = renderExtension == null ? null : renderExtension.getHatModel(heatLevel);
+        PartialModel gogglesModel = renderExtension == null ? null : renderExtension.getGogglesModel(heatLevel);
         renderBlaze(
                 blockState, heatLevel, renderTime,
                 poseStack, null, bufferSource,
@@ -82,7 +85,7 @@ public class BlazeBlockRenderer<T extends BlazeBlockEntity> extends SafeBlockEnt
         if (transformStack != null)
             gogglesBuffer.transform(transformStack);
         gogglesBuffer.translate(0, headY + .5f, 0);
-        RenderType renderType = getRenderType(blockState, gogglesModel);
+        RenderType renderType = RenderType.solid();
         draw(gogglesBuffer, horizontalAngle, poseStack, bufferSource.getBuffer(renderType));
     }
 
@@ -96,7 +99,7 @@ public class BlazeBlockRenderer<T extends BlazeBlockEntity> extends SafeBlockEnt
         if (transformStack != null)
             hatBuffer.transform(transformStack);
         hatBuffer.translate(0f, headY + .75f, 0f);
-        RenderType renderType = getRenderType(blockState, hatModel);
+        RenderType renderType = RenderType.cutoutMipped();
         drawCentered(hatBuffer, horizontalAngle + Mth.PI, poseStack, bufferSource.getBuffer(renderType));
     }
 

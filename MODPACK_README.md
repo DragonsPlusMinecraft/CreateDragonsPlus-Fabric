@@ -2,24 +2,22 @@
 
 ### Fluid
 
-* `forge:dyes` contains all Create: Dragons Plus dye fluids.
-* `forge:dyes/<serialized_name>` contains one dye variant. Examples include
-  `forge:dyes/red`, `forge:dyes/dye_depot_amber`, `forge:dyes/dyenamics_amber`, and
-  `forge:dyes/arts_and_crafts_bleached`.
-* `forge:dragon_breath` contains Liquid Dragon's Breath.
+* `c:dyes` contains all Create: Dragons Plus dye fluids.
+* `c:dyes/<serialized_name>` contains one dye variant. Examples include
+  `c:dyes/red`, `c:dyes/dye_depot_amber`, and `c:dyes/arts_and_crafts_bleached`.
+* `c:dragon_breath` contains Liquid Dragon's Breath.
 * `create_dragons_plus:fan_processing_catalysts/coloring/<serialized_name>` selects the
   fluid catalyst for one Bulk Coloring variant.
 * `create_dragons_plus:fan_processing_catalysts/ending` contains fluid catalysts for Bulk Ending.
 
 ### Item
 
-* `forge:buckets/dye` contains dye-fluid buckets, with
-  `forge:buckets/dye/<serialized_name>` for an individual variant.
-* `forge:buckets/dragon_breath` contains the Bucket of Liquid Dragon's Breath.
-* `forge:buckets` includes both bucket groups above.
+* `c:buckets/dye` contains dye-fluid buckets, with
+  `c:buckets/dye/<serialized_name>` for an individual variant.
+* `c:buckets/dragon_breath` contains the Bucket of Liquid Dragon's Breath.
+* `c:buckets` includes both bucket groups above.
 * `create_dragons_plus:dyes/<namespace>/<color>` contains source dye items used by dye-fluid
-  recipes. Keeping the namespace in this tag distinguishes colors shared by Dye Depot and
-  Dyenamics.
+  recipes. Keeping the namespace in this tag distinguishes colors supplied by optional mods.
 * `create_dragons_plus:not_applicable_for_coloring` excludes inputs from automatically converted
   Bulk Coloring recipes.
 
@@ -45,7 +43,7 @@ processing-recipe format and adds a `color` field containing the dye variant ID.
 ```json
 {
   "type": "create_dragons_plus:coloring",
-  "color": "dyenamics:amber",
+  "color": "dye_depot:amber",
   "ingredients": [
     {
       "item": "minecraft:white_wool"
@@ -66,8 +64,7 @@ unrelated vanilla entity color.
 
 Each variant gets matching fluid and block catalyst tags at
 `create_dragons_plus:fan_processing_catalysts/coloring/<serialized_name>`. The generated fluid tag
-contains the CDP dye source and flowing fluids. The 16 vanilla-color tags also contain optional
-Create: Garnished mastic resin source and flowing fluids.
+contains the CDP dye source and flowing fluids.
 
 ### Bulk Freezing
 
@@ -96,32 +93,16 @@ polished-name rule.
 ### Dye Depot
 
 When Dye Depot is loaded, CDP registers fluids, buckets, mixing recipes, catalyst tags, and Bulk
-Coloring support for its official 1.20.1 colors. Overlapping names remain namespaced; for example,
-`dye_depot:amber` and `dyenamics:amber` are distinct variants.
-
-### Dyenamics
-
-When Dyenamics is loaded, CDP registers fluids, buckets, mixing recipes, catalyst tags, and Bulk
 Coloring support for its official 1.20.1 colors.
 
 ### Arts & Crafts
 
-When Arts & Crafts and its JinxedLib dependency are loaded, `arts_and_crafts:bleachdew` supplies the
+When Arts & Crafts is loaded, `arts_and_crafts:bleachdew` supplies the
 `arts_and_crafts:bleached` variant. This creates the corresponding dye fluid and bucket and connects
 it to Bulk Coloring; it is not a separate fan processing type.
 
-### Create: Garnished
-
-CDP consumes the official Garnished 2.1.7.b dye-blowing recipes for the 16 vanilla colors and its
-freezing recipes. While the corresponding CDP feature is enabled, the equivalent Garnished fan
-processing type and duplicate JEI recipe supplier are disabled so only the CDP category processes
-those recipes. Garnished's own Dragon's Breath ending catalyst data is left untouched.
-
-### Immersive Engineering
-
-The Fluid Hatch accepts Immersive Engineering potion fluid through Forge fluid capabilities. IE
-1.20.1 stores potion data in NBT without a bottle type, so the hatch outputs a normal potion item,
-copies the complete potion NBT, and consumes 250 mB.
+Dyenamics, Create: Garnished, and Immersive Engineering are outside the support scope of
+`1.11.4-fabric.1`.
 
 ## Configuration
 
@@ -153,5 +134,5 @@ The normal server config exposes:
 * `enableBulkSanding`
 * `enableBulkEnding`
 
-The condition serializer remains `create_dragons_plus:config_feature`; generated Forge 1.20.1
-conditional recipes use it to reference the feature IDs above.
+The condition type remains `create_dragons_plus:config_feature`; generated Fabric 1.20.1 recipes
+reference it through their `fabric:load_conditions` arrays.

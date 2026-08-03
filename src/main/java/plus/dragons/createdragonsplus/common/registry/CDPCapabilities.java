@@ -18,12 +18,14 @@
 
 package plus.dragons.createdragonsplus.common.registry;
 
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.CapabilityManager;
-import net.minecraftforge.common.capabilities.CapabilityToken;
+import net.fabricmc.fabric.api.lookup.v1.block.BlockApiLookup;
+import net.minecraft.core.Direction;
+import plus.dragons.createdragonsplus.common.CDPCommon;
 import plus.dragons.createdragonsplus.common.behaviours.BehaviourProvider;
 
-public class CDPCapabilities {
-    public static final Capability<BehaviourProvider> BEHAVIOUR_PROVIDER = CapabilityManager
-            .get(new CapabilityToken<>() {});
+public final class CDPCapabilities {
+    public static final BlockApiLookup<BehaviourProvider, Direction> BEHAVIOUR_PROVIDER = BlockApiLookup.get(
+            CDPCommon.asResource("behaviour_provider"), BehaviourProvider.class, Direction.class);
+
+    private CDPCapabilities() {}
 }

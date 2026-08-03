@@ -1,9 +1,7 @@
 {
   "required": true,
   "package": "plus.dragons.createdragonsplus.mixin",
-  "plugin": "plus.dragons.createdragonsplus.mixin.CDPMixinConfigPlugin",
   "compatibilityLevel": "JAVA_17",
-  "refmap": "create_dragons_plus.refmap.json",
   "mixins": [
     "create.AirCurrentMixin",
     "create.AirCurrentMixin$AirCurrentSegmentMixin",
@@ -17,11 +15,10 @@
     "create.VanillaFluidTargetsMixin",
     "minecraft.BottleItemMixin",
     "minecraft.ConcretePowderBlockMixin",
+    "minecraft.EntityMixin",
     "minecraft.PointedDripstoneBlockMixin",
     "minecraft.RecipeManagerAccessor",
     "minecraft.ReloadableServerResourcesMixin",
-    "forge.ExistingFileHelperAccessor",
-    "immersive_engineering.LogicUnitBlockEntityMixin",
     "minecraft.ServerPlayerMixin"
   ],
   "client": [

@@ -20,24 +20,37 @@ package plus.dragons.createdragonsplus.common.recipe;
 
 import com.simibubi.create.foundation.recipe.IRecipeTypeInfo;
 import java.util.function.Supplier;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.RegistryObject;
 import plus.dragons.createdragonsplus.common.CDPCommon;
 
-public class RecipeTypeInfo<R extends Recipe<?>> implements IRecipeTypeInfo {
+public final class RecipeTypeInfo<R extends Recipe<?>> implements IRecipeTypeInfo {
     private final ResourceLocation id;
-    private final RegistryObject<RecipeSerializer<?>> serializer;
-    private final RegistryObject<RecipeType<?>> type;
+    private final RecipeSerializer<R> serializer;
+    private final RecipeType<R> type;
+    private boolean registered;
 
-    public RecipeTypeInfo(String name, Supplier<? extends RecipeSerializer<R>> serializer,
-            DeferredRegister<RecipeSerializer<?>> serializerRegister, DeferredRegister<RecipeType<?>> typeRegister) {
+    public RecipeTypeInfo(String name, Supplier<? extends RecipeSerializer<R>> serializer) {
         this.id = CDPCommon.asResource(name);
-        this.serializer = serializerRegister.register(name, serializer);
-        this.type = typeRegister.register(name, () -> RecipeType.simple(id));
+        this.serializer = serializer.get();
+        this.type = new RecipeType<>() {
+            @Override
+            public String toString() {
+                return id.toString();
+            }
+        };
+    }
+
+    public void register() {
+        if (registered)
+            return;
+        registered = true;
+        Registry.register(BuiltInRegistries.RECIPE_SERIALIZER, id, serializer);
+        Registry.register(BuiltInRegistries.RECIPE_TYPE, id, type);
     }
 
     @Override
@@ -48,12 +61,12 @@ public class RecipeTypeInfo<R extends Recipe<?>> implements IRecipeTypeInfo {
     @Override
     @SuppressWarnings("unchecked")
     public <T extends RecipeSerializer<?>> T getSerializer() {
-        return (T) serializer.get();
+        return (T) serializer;
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public <T extends RecipeType<?>> T getType() {
-        return (T) type.get();
+        return (T) type;
     }
 }

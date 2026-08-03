@@ -31,24 +31,30 @@ import com.simibubi.create.content.processing.recipe.ProcessingRecipeBuilder;
 import com.tterrag.registrate.providers.RegistrateRecipeProvider;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import net.minecraft.data.PackOutput;
+import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.data.recipes.FinishedRecipe;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.ItemLike;
-import net.minecraftforge.common.Tags;
 import plus.dragons.createdragonsplus.common.kinetics.fan.ending.EndingRecipe;
 import plus.dragons.createdragonsplus.common.kinetics.fan.freezing.FreezingRecipe;
 import plus.dragons.createdragonsplus.config.CDPConfig;
 
 public class CDPRecipeProvider extends RegistrateRecipeProvider {
-    public CDPRecipeProvider(PackOutput output) {
+    private static final TagKey<Item> COPPER_INGOTS = TagKey.create(Registries.ITEM,
+            new ResourceLocation("c", "ingots/copper"));
+    private static final TagKey<Item> LEATHER = TagKey.create(Registries.ITEM,
+            new ResourceLocation("c", "leather"));
+
+    public CDPRecipeProvider(FabricDataOutput output) {
         super(REGISTRATE, output);
     }
 
     @Override
-    protected void buildRecipes(Consumer<FinishedRecipe> output) {
+    public void buildRecipes(Consumer<FinishedRecipe> output) {
         buildMachineRecipes(output);
         buildMaterialRecipes(output);
         buildFreezingRecipes(output);
@@ -57,7 +63,7 @@ public class CDPRecipeProvider extends RegistrateRecipeProvider {
 
     private void buildMachineRecipes(Consumer<FinishedRecipe> output) {
         shapeless().output(FLUID_HATCH)
-                .require(Tags.Items.INGOTS_COPPER)
+                .require(COPPER_INGOTS)
                 .require(ITEM_DRAIN)
                 .unlockedBy("has_item_drain", has(ITEM_DRAIN))
                 .withCondition(CDPConfig.features().fluidHatch)
@@ -92,20 +98,23 @@ public class CDPRecipeProvider extends RegistrateRecipeProvider {
         conversion(ending, STONE_BRICK_STAIRS, END_STONE_BRICK_STAIRS).build(output);
         conversion(ending, STONE_BRICK_SLAB, END_STONE_BRICK_SLAB).build(output);
         conversion(ending, APPLE, CHORUS_FRUIT).build(output);
-        conversion(ending, Tags.Items.LEATHER, PHANTOM_MEMBRANE).build(output);
+        conversion(ending, LEATHER, PHANTOM_MEMBRANE).build(output);
     }
 
     private <T extends ProcessingRecipe<?>> ProcessingRecipeBuilder<T> conversion(
             Function<ResourceLocation, ProcessingRecipeBuilder<T>> factory,
             ItemLike input, ItemLike output) {
-        var recipeId = REGISTRATE.asResource("%s_from_%s".formatted(safeName(output), safeName(input)));
+        var recipeId = REGISTRATE.asResource("%s_from_%s".formatted(
+                safeName(BuiltInRegistries.ITEM.getKey(output.asItem())),
+                safeName(BuiltInRegistries.ITEM.getKey(input.asItem()))));
         return factory.apply(recipeId).require(input).output(output);
     }
 
     private <T extends ProcessingRecipe<?>> ProcessingRecipeBuilder<T> conversion(
             Function<ResourceLocation, ProcessingRecipeBuilder<T>> factory,
             TagKey<Item> input, ItemLike output) {
-        var recipeId = REGISTRATE.asResource("%s_from_%s".formatted(safeName(output), safeName(input.location())));
+        var recipeId = REGISTRATE.asResource("%s_from_%s".formatted(
+                safeName(BuiltInRegistries.ITEM.getKey(output.asItem())), safeName(input.location())));
         return factory.apply(recipeId).require(input).output(output);
     }
 }

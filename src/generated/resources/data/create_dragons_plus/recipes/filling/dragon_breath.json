@@ -1,17 +1,17 @@
 {
-  "type": "create:filling",
-  "conditions": [
+  "fabric:load_conditions": [
     {
-      "type": "create_dragons_plus:config_feature",
+      "condition": "create_dragons_plus:config_feature",
       "feature": "create_dragons_plus:fluid/dragon_breath"
     }
   ],
+  "type": "create:filling",
   "ingredients": [
     {
       "item": "minecraft:glass_bottle"
     },
     {
-      "amount": 250,
+      "amount": 20250,
       "fluid": "create_dragons_plus:dragon_breath",
       "nbt": {}
     }

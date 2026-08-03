@@ -27,7 +27,7 @@ import plus.dragons.createdragonsplus.integration.ModIntegration;
 
 public class ArtsAndCraftsDyeVariants {
     public static void register(RegisterDyeVariantsEvent event) {
-        if (!ModIntegration.ARTS_AND_CRAFTS.enabled())
+        if (!ModIntegration.ARTS_AND_CRAFTS.enabledForRegistration())
             return;
         event.register(new DyeVariant(
                 new ResourceLocation(ModIntegration.Constants.ARTS_AND_CRAFTS, "bleached"),

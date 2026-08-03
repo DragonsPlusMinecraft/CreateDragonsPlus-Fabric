@@ -18,21 +18,17 @@
 
 package plus.dragons.createdragonsplus.mixin.create;
 
-import com.llamalad7.mixinextras.sugar.Local;
 import com.simibubi.create.content.fluids.OpenEndedPipe;
+import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
+import io.github.fabricators_of_create.porting_lib.transfer.callbacks.TransactionCallback;
+import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.material.FluidState;
-import net.minecraftforge.common.ForgeMod;
-import net.minecraftforge.event.ForgeEventFactory;
-import net.minecraftforge.fluids.FluidStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import plus.dragons.createdragonsplus.common.registry.CDPFluids;
 
 @Mixin(value = OpenEndedPipe.class, remap = false)
 public class OpenEndedPipeMixin {
@@ -43,31 +39,13 @@ public class OpenEndedPipeMixin {
     private BlockPos outputPos;
 
     @Inject(method = "provideFluidToSpace", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/dimension/DimensionType;ultraWarm()Z"), cancellable = true)
-    private void provideFluidToSpace$checkVaporize(FluidStack fluid, boolean simulate, CallbackInfoReturnable<Boolean> cir) {
+    private void provideFluidToSpace$checkVaporize(
+            FluidStack fluid, TransactionContext transaction, CallbackInfoReturnable<Boolean> cir) {
         var type = fluid.getFluid().getFluidType();
         if (world.dimensionType().ultraWarm() && type.isVaporizedOnPlacement(world, outputPos, fluid)) {
-            type.onVaporize(null, world, outputPos, fluid);
+            TransactionCallback.onSuccess(transaction,
+                    () -> type.onVaporize(null, world, outputPos, fluid.copy()));
             cir.setReturnValue(true);
         }
-    }
-
-    @Inject(method = "provideFluidToSpace", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/fluids/FluidReactions;handlePipeSpillCollision(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/material/Fluid;Lnet/minecraft/world/level/material/FluidState;)V"), cancellable = true)
-    private void provideFluidToSpace$handleDyeLavaCollision(FluidStack fluid, boolean simulate, CallbackInfoReturnable<Boolean> cir, @Local FluidState fluidState) {
-        BlockState result = null;
-        var pipeType = fluid.getFluid().getFluidType();
-        var worldType = fluidState.getFluidType();
-        if (pipeType == ForgeMod.LAVA_TYPE.get()) {
-            result = CDPFluids.Reactions.getDyeLavaInteraction(worldType);
-        } else if (worldType == ForgeMod.LAVA_TYPE.get()) {
-            result = CDPFluids.Reactions.getDyeLavaInteraction(pipeType);
-        }
-        if (result == null)
-            return;
-        if (!simulate) {
-            var placed = ForgeEventFactory.fireFluidPlaceBlockEvent(world, outputPos, outputPos, result);
-            world.setBlockAndUpdate(outputPos, placed);
-            world.levelEvent(1501, outputPos, 0);
-        }
-        cir.setReturnValue(true);
     }
 }

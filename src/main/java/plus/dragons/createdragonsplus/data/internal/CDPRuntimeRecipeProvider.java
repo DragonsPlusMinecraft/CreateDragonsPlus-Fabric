@@ -29,22 +29,19 @@ import net.minecraft.world.item.HoneycombItem;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.WeatheringCopper;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 import plus.dragons.createdragonsplus.common.CDPCommon;
 import plus.dragons.createdragonsplus.common.recipe.UpdateRecipesEvent;
 import plus.dragons.createdragonsplus.common.registry.CDPBlocks;
 import plus.dragons.createdragonsplus.config.CDPConfig;
 import plus.dragons.createdragonsplus.data.recipe.CreateRecipeBuilders;
 
-@Mod.EventBusSubscriber
 public class CDPRuntimeRecipeProvider extends RecipeProvider {
     public CDPRuntimeRecipeProvider(PackOutput output) {
         super(output);
     }
 
     @Override
-    protected void buildRecipes(Consumer<FinishedRecipe> output) {
+    public void buildRecipes(Consumer<FinishedRecipe> output) {
         if (CDPConfig.features().generateSandPaperPolishingRecipeForPolishedBlocks.get()) {
             buildPolishedBlockRecipes(output);
         }
@@ -129,7 +126,6 @@ public class CDPRuntimeRecipeProvider extends RecipeProvider {
         });
     }
 
-    @SubscribeEvent
     public static void buildRecipesForUpdate(final UpdateRecipesEvent event) {
         if (CDPConfig.features().generateSandPaperPolishingRecipeForPolishedBlocks.get()) {
             removeNotApplicablePolishedBlockRecipes(event);

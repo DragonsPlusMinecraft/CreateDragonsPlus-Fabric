@@ -18,9 +18,10 @@
 
 package plus.dragons.createdragonsplus.integration;
 
+import net.fabricmc.fabric.api.resource.conditions.v1.ConditionJsonProvider;
+import net.fabricmc.fabric.api.resource.conditions.v1.DefaultResourceConditions;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.common.crafting.conditions.ModLoadedCondition;
-import net.minecraftforge.fml.ModList;
 
 public enum ModIntegration {
     CREATE_GARNISHED(Constants.CREATE_GARNISHED),
@@ -40,15 +41,20 @@ public enum ModIntegration {
     }
 
     public boolean enabled() {
-        return ModList.get().isLoaded(id);
+        return FabricLoader.getInstance().isModLoaded(id);
+    }
+
+    /** Datagen must declare conditioned resources even when the target mod is not installed. */
+    public boolean enabledForRegistration() {
+        return enabled() || System.getProperty("fabric-api.datagen") != null;
     }
 
     public ResourceLocation asResource(String path) {
         return new ResourceLocation(id, path);
     }
 
-    public ModLoadedCondition condition() {
-        return new ModLoadedCondition(id);
+    public ConditionJsonProvider condition() {
+        return DefaultResourceConditions.allModsLoaded(id);
     }
 
     public static class Constants {

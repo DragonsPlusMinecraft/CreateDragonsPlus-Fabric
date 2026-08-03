@@ -46,6 +46,8 @@ import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
+import plus.dragons.createdragonsplus.client.renderer.blockentity.BlazeBlockEntityClient;
+import plus.dragons.createdragonsplus.client.renderer.blockentity.BlazeBlockEntityRenderExtension;
 import plus.dragons.createdragonsplus.util.CodeReference;
 import plus.dragons.createdragonsplus.util.FieldsNullabilityUnknownByDefault;
 
@@ -122,7 +124,9 @@ public class BlazeBlockVisual<T extends BlazeBlockEntity> extends AbstractBlockE
             flame = null;
         }
         // Update goggles
-        PartialModel gogglesModel = blockEntity.getGogglesModel(heatLevel);
+        PartialModel gogglesModel = blockEntity instanceof BlazeBlockEntityRenderExtension extension
+                ? extension.getGogglesModel(heatLevel)
+                : null;
         if (goggles == null) {
             if (gogglesModel != null) {
                 goggles = instancerProvider()
@@ -142,7 +146,9 @@ public class BlazeBlockVisual<T extends BlazeBlockEntity> extends AbstractBlockE
             this.gogglesModel = gogglesModel;
         }
         // Update hat
-        PartialModel hatModel = blockEntity.getHatModel(heatLevel);
+        PartialModel hatModel = blockEntity instanceof BlazeBlockEntityRenderExtension extension
+                ? extension.getHatModel(heatLevel)
+                : null;
         if (hat == null) {
             if (hatModel != null) {
                 hat = instancerProvider()
@@ -248,7 +254,7 @@ public class BlazeBlockVisual<T extends BlazeBlockEntity> extends AbstractBlockE
 
     @Override
     public void tick(TickableVisual.Context context) {
-        blockEntity.tickAnimation();
+        BlazeBlockEntityClient.tickAnimation(blockEntity);
     }
 
     @Override

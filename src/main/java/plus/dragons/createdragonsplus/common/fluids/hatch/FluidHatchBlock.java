@@ -30,7 +30,13 @@ import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour
 import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
 import com.simibubi.create.foundation.fluid.FluidHelper;
 import com.simibubi.create.foundation.fluid.FluidHelper.FluidExchange;
+import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
 import net.createmod.catnip.data.Pair;
+import net.fabricmc.fabric.api.entity.FakePlayer;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorage;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
+import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
+import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -56,11 +62,6 @@ import net.minecraft.world.level.pathfinder.PathComputationType;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.common.util.FakePlayer;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.capability.IFluidHandler;
-import net.minecraftforge.fluids.capability.IFluidHandler.FluidAction;
 import org.jetbrains.annotations.Nullable;
 import plus.dragons.createdragonsplus.common.fluids.hatch.FluidHatchItemFluidTransfer.TransferResult;
 import plus.dragons.createdragonsplus.common.registry.CDPBlockEntities;
@@ -110,11 +111,14 @@ public class FluidHatchBlock extends HorizontalDirectionalBlock implements IBE<F
         if (player instanceof FakePlayer)
             return InteractionResult.SUCCESS;
 
-        BlockEntity blockEntity = level.getBlockEntity(pos.relative(state.getValue(FACING)));
+        Direction facing = state.getValue(FACING);
+        BlockPos targetPos = pos.relative(facing);
+        BlockEntity blockEntity = level.getBlockEntity(targetPos);
         if (blockEntity == null)
             return InteractionResult.FAIL;
 
-        IFluidHandler tankCapability = blockEntity.getCapability(ForgeCapabilities.FLUID_HANDLER).orElse(null);
+        Storage<FluidVariant> tankCapability = FluidStorage.SIDED.find(
+                level, targetPos, null, blockEntity, facing.getOpposite());
         if (tankCapability == null)
             return InteractionResult.FAIL;
 
@@ -162,9 +166,9 @@ public class FluidHatchBlock extends HorizontalDirectionalBlock implements IBE<F
         return InteractionResult.SUCCESS;
     }
 
-    public FluidStack tryEmptyItem(
+    FluidStack tryEmptyItem(
             Level level, Player player, InteractionHand hand, ItemStack stack,
-            BlockEntity blockEntity, IFluidHandler capability, FilteringBehaviour filter) {
+            BlockEntity blockEntity, Storage<FluidVariant> capability, FilteringBehaviour filter) {
         ItemStack transferredStack = stack.copy();
         TransferResult transfer = FluidHatchItemFluidTransfer.tryDrainItemToTank(transferredStack, capability, filter);
         if (!transfer.isEmpty()) {
@@ -186,18 +190,16 @@ public class FluidHatchBlock extends HorizontalDirectionalBlock implements IBE<F
         if (!filter.test(fluidStack))
             return FluidStack.EMPTY;
 
-        if (fluidStack.getAmount() != capability.fill(fluidStack, FluidAction.SIMULATE))
+        if (fluidStack.getAmount() != simulateInsert(capability, fluidStack))
             return FluidStack.EMPTY;
-        if (level.isClientSide)
-            return fluidStack;
 
         ItemStack copy = stack.copy();
         emptying = GenericItemEmptying.emptyItem(level, copy, false);
 
-        // Prevent special cap behavior interrupting insert fluid.
-        int realFill = capability.fill(fluidStack.copy(), FluidAction.SIMULATE);
-        if (realFill == 0) return fluidStack;
-        capability.fill(fluidStack.copy(), FluidAction.EXECUTE);
+        // Re-check immediately before committing so special container or target behavior
+        // cannot leave one side of the exchange applied without the other.
+        if (!commitInsert(capability, fluidStack))
+            return FluidStack.EMPTY;
         blockEntity.setChanged();
 
         if (level instanceof ServerLevel serverLevel)
@@ -209,7 +211,8 @@ public class FluidHatchBlock extends HorizontalDirectionalBlock implements IBE<F
         return fluidStack;
     }
 
-    public FluidStack tryFillItem(Level level, Player player, InteractionHand hand, ItemStack stack, BlockEntity blockEntity, IFluidHandler capability, FilteringBehaviour filter) {
+    FluidStack tryFillItem(Level level, Player player, InteractionHand hand, ItemStack stack,
+            BlockEntity blockEntity, Storage<FluidVariant> capability, FilteringBehaviour filter) {
         FluidStack fluidStack = tryFillItemWithExtraHandler(level, player, hand, stack, blockEntity, capability, filter);
         if (!fluidStack.isEmpty())
             return fluidStack;
@@ -233,33 +236,28 @@ public class FluidHatchBlock extends HorizontalDirectionalBlock implements IBE<F
         if (!GenericItemFilling.canItemBeFilled(level, stack))
             return FluidStack.EMPTY;
 
-        for (int i = 0; i < capability.getTanks(); i++) {
-            fluidStack = capability.getFluidInTank(i);
+        for (var view : capability.nonEmptyViews()) {
+            fluidStack = new FluidStack(view);
             if (fluidStack.isEmpty() || !filter.test(fluidStack))
                 continue;
-            int requiredAmountForItem = FluidHatchItemFilling.getRequiredAmountForItem(level, stack, fluidStack.copy());
+            long requiredAmountForItem = FluidHatchItemFilling.getRequiredAmountForItem(level, stack, fluidStack.copy());
             if (requiredAmountForItem == -1)
                 continue;
-            if (requiredAmountForItem > fluidStack.getAmount())
+            if (requiredAmountForItem > view.getAmount())
                 continue;
 
             FluidStack fluidCopy = fluidStack.copy();
             fluidCopy.setAmount(requiredAmountForItem);
 
-            FluidStack realDraw = capability.drain(fluidCopy, FluidAction.SIMULATE);
-            if (realDraw.isEmpty() || realDraw.getAmount() != requiredAmountForItem)
+            if (simulateExtract(capability, fluidCopy) != requiredAmountForItem)
                 continue;
 
-            if (level.isClientSide)
-                return fluidCopy;
-
-            ItemStack workingStack = player.isCreative() || blockEntity instanceof CreativeFluidTankBlockEntity
-                    ? stack.copy()
-                    : stack;
+            ItemStack workingStack = stack.copy();
             ItemStack result = FluidHatchItemFilling.fillItem(level, requiredAmountForItem, workingStack, fluidStack.copy());
             if (result.isEmpty())
                 continue;
-            capability.drain(fluidCopy, FluidAction.EXECUTE);
+            if (!commitExtract(capability, fluidCopy))
+                continue;
 
             if (!player.isCreative())
                 replaceItem(player, hand, workingStack, result);
@@ -273,37 +271,32 @@ public class FluidHatchBlock extends HorizontalDirectionalBlock implements IBE<F
 
     private FluidStack tryFillItemWithFillingRecipe(
             Level level, Player player, InteractionHand hand, ItemStack stack,
-            BlockEntity blockEntity, IFluidHandler capability, FilteringBehaviour filter) {
-        for (int i = 0; i < capability.getTanks(); i++) {
-            FluidStack fluidStack = capability.getFluidInTank(i);
+            BlockEntity blockEntity, Storage<FluidVariant> capability, FilteringBehaviour filter) {
+        for (var view : capability.nonEmptyViews()) {
+            FluidStack fluidStack = new FluidStack(view);
             if (fluidStack.isEmpty() || !filter.test(fluidStack))
                 continue;
 
             var requiredAmount = FluidHatchFillingRecipeTransfer.getRequiredAmountForItem(level, stack, fluidStack.copy());
             if (requiredAmount.isEmpty())
                 continue;
-            int requiredAmountForItem = requiredAmount.getAsInt();
-            if (requiredAmountForItem > fluidStack.getAmount())
+            long requiredAmountForItem = requiredAmount.getAsLong();
+            if (requiredAmountForItem > view.getAmount())
                 continue;
 
             FluidStack fluidCopy = fluidStack.copy();
             fluidCopy.setAmount(requiredAmountForItem);
 
-            FluidStack realDraw = capability.drain(fluidCopy, FluidAction.SIMULATE);
-            if (realDraw.isEmpty() || realDraw.getAmount() != requiredAmountForItem)
+            if (simulateExtract(capability, fluidCopy) != requiredAmountForItem)
                 continue;
 
-            if (level.isClientSide)
-                return fluidCopy;
-
-            ItemStack workingStack = player.isCreative() || blockEntity instanceof CreativeFluidTankBlockEntity
-                    ? stack.copy()
-                    : stack;
+            ItemStack workingStack = stack.copy();
             var result = FluidHatchFillingRecipeTransfer.fillItem(level, requiredAmountForItem, workingStack, fluidStack.copy());
             if (result.isEmpty())
                 continue;
 
-            capability.drain(fluidCopy, FluidAction.EXECUTE);
+            if (!commitExtract(capability, fluidCopy))
+                continue;
 
             if (!player.isCreative())
                 replaceItem(player, hand, workingStack, result.get());
@@ -317,9 +310,9 @@ public class FluidHatchBlock extends HorizontalDirectionalBlock implements IBE<F
 
     private FluidStack tryFillItemWithExtraHandler(
             Level level, Player player, InteractionHand hand, ItemStack stack,
-            BlockEntity blockEntity, IFluidHandler capability, FilteringBehaviour filter) {
-        for (int i = 0; i < capability.getTanks(); i++) {
-            FluidStack fluidStack = capability.getFluidInTank(i);
+            BlockEntity blockEntity, Storage<FluidVariant> capability, FilteringBehaviour filter) {
+        for (var view : capability.nonEmptyViews()) {
+            FluidStack fluidStack = new FluidStack(view);
             if (fluidStack.isEmpty() || !filter.test(fluidStack))
                 continue;
 
@@ -327,26 +320,21 @@ public class FluidHatchBlock extends HorizontalDirectionalBlock implements IBE<F
             if (requiredAmount.isEmpty())
                 continue;
             int requiredAmountForItem = requiredAmount.getAsInt();
-            if (requiredAmountForItem > fluidStack.getAmount())
+            if (requiredAmountForItem > view.getAmount())
                 continue;
 
             FluidStack fluidCopy = fluidStack.copy();
             fluidCopy.setAmount(requiredAmountForItem);
 
-            FluidStack realDraw = capability.drain(fluidCopy, FluidAction.SIMULATE);
-            if (realDraw.isEmpty() || realDraw.getAmount() != requiredAmountForItem)
+            if (simulateExtract(capability, fluidCopy) != requiredAmountForItem)
                 continue;
 
-            if (level.isClientSide)
-                return fluidCopy;
-
-            ItemStack workingStack = player.isCreative() || blockEntity instanceof CreativeFluidTankBlockEntity
-                    ? stack.copy()
-                    : stack;
+            ItemStack workingStack = stack.copy();
             var result = FluidHatchItemFilling.fillItemWithExtraHandler(requiredAmountForItem, workingStack, fluidStack.copy());
             if (result.isEmpty())
                 continue;
-            capability.drain(fluidCopy, FluidAction.EXECUTE);
+            if (!commitExtract(capability, fluidCopy))
+                continue;
 
             if (!player.isCreative())
                 replaceItem(player, hand, workingStack, result.get());
@@ -356,6 +344,38 @@ public class FluidHatchBlock extends HorizontalDirectionalBlock implements IBE<F
             return fluidCopy;
         }
         return FluidStack.EMPTY;
+    }
+
+    private static long simulateInsert(Storage<FluidVariant> storage, FluidStack fluid) {
+        try (Transaction outer = Transaction.openOuter(); Transaction simulation = outer.openNested()) {
+            return storage.insert(fluid.getType(), fluid.getAmount(), simulation);
+        }
+    }
+
+    private static long simulateExtract(Storage<FluidVariant> storage, FluidStack fluid) {
+        try (Transaction outer = Transaction.openOuter(); Transaction simulation = outer.openNested()) {
+            return storage.extract(fluid.getType(), fluid.getAmount(), simulation);
+        }
+    }
+
+    private static boolean commitInsert(Storage<FluidVariant> storage, FluidStack fluid) {
+        try (Transaction transaction = Transaction.openOuter()) {
+            long inserted = storage.insert(fluid.getType(), fluid.getAmount(), transaction);
+            if (inserted != fluid.getAmount())
+                return false;
+            transaction.commit();
+            return true;
+        }
+    }
+
+    private static boolean commitExtract(Storage<FluidVariant> storage, FluidStack fluid) {
+        try (Transaction transaction = Transaction.openOuter()) {
+            long extracted = storage.extract(fluid.getType(), fluid.getAmount(), transaction);
+            if (extracted != fluid.getAmount())
+                return false;
+            transaction.commit();
+            return true;
+        }
     }
 
     private static void replaceItem(Player player, InteractionHand hand, ItemStack stack, ItemStack result) {

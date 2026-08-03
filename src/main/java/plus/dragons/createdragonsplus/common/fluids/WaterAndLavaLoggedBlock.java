@@ -85,7 +85,6 @@ public interface WaterAndLavaLoggedBlock extends BucketPickup, LiquidBlockContai
         return Optional.empty();
     }
 
-    @Override
     default Optional<SoundEvent> getPickupSound(BlockState state) {
         return switch (state.getValue(FLUID)) {
             case EMPTY -> Optional.empty();

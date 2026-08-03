@@ -35,7 +35,7 @@ public class DyeLiquidBlock extends LiquidBlock {
     private final DyeVariant variant;
 
     public DyeLiquidBlock(DyeVariant variant, Supplier<? extends FlowingFluid> fluid, Properties properties) {
-        super(fluid, properties);
+        super(fluid.get(), properties);
         this.variant = variant;
     }
 

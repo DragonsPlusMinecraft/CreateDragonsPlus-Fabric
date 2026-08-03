@@ -25,18 +25,17 @@ import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
 import com.simibubi.create.foundation.fluid.CombinedTankWrapper;
 import com.simibubi.create.foundation.fluid.SmartFluidTank;
+import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
 import java.util.List;
 import java.util.function.Consumer;
 import net.createmod.catnip.animation.LerpedFloat;
 import net.createmod.catnip.animation.LerpedFloat.Chaser;
 import net.createmod.catnip.nbt.NBTHelper;
-import net.minecraft.Util;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
+import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.capability.IFluidHandler;
 import org.apache.commons.lang3.mutable.MutableInt;
 import plus.dragons.createdragonsplus.util.CodeReference;
 
@@ -48,11 +47,13 @@ public class FluidTankBehaviour extends BlockEntityBehaviour {
     protected boolean queuedSync;
     protected SmartFluidTank[] handlers;
     protected TankSegment[] tanks;
-    protected LazyOptional<IFluidHandler> capability;
+    protected Storage<FluidVariant> capability;
+    protected final boolean enforceVariety;
     protected Runnable fluidUpdateCallback;
 
     public FluidTankBehaviour(SmartBlockEntity blockEntity, List<TankFactory> factories, boolean enforceVariety) {
         super(blockEntity);
+        this.enforceVariety = enforceVariety;
         this.handlers = new SmartFluidTank[factories.size()];
         this.tanks = new TankSegment[factories.size()];
         for (int i = 0; i < factories.size(); i++) {
@@ -60,20 +61,17 @@ public class FluidTankBehaviour extends BlockEntityBehaviour {
             this.tanks[i] = tankSegment;
             this.handlers[i] = tankSegment.tank;
         }
-        IFluidHandler combinedTank = Util.make(new CombinedTankWrapper(this.handlers), tank -> {
-            if (enforceVariety)
-                tank.enforceVariety();
-        });
-        capability = LazyOptional.of(() -> combinedTank);
+        rebuildStorage();
         fluidUpdateCallback = Runnables.doNothing();
     }
 
     public FluidTankBehaviour(SmartBlockEntity blockEntity, TankFactory factory) {
         super(blockEntity);
+        this.enforceVariety = false;
         var tank = new TankSegment(factory);
         this.handlers = new SmartFluidTank[] { tank.tank };
         this.tanks = new TankSegment[] { tank };
-        capability = LazyOptional.of(() -> tank.tank);
+        capability = tank.tank;
         fluidUpdateCallback = Runnables.doNothing();
     }
 
@@ -133,12 +131,6 @@ public class FluidTankBehaviour extends BlockEntityBehaviour {
         blockEntity.setChanged();
     }
 
-    @Override
-    public void unload() {
-        super.unload();
-        capability.invalidate();
-    }
-
     public SmartFluidTank getPrimaryHandler() {
         return handlers[0];
     }
@@ -158,7 +150,19 @@ public class FluidTankBehaviour extends BlockEntityBehaviour {
     public void setTank(int index, TankFactory factory) {
         var tank = this.tanks[index] = new TankSegment(factory);
         this.handlers[index] = tank.tank;
+        rebuildStorage();
         this.updateFluids();
+    }
+
+    private void rebuildStorage() {
+        if (handlers.length == 1) {
+            capability = handlers[0];
+            return;
+        }
+        CombinedTankWrapper combined = new CombinedTankWrapper(handlers);
+        if (enforceVariety)
+            combined.enforceVariety();
+        capability = combined;
     }
 
     public boolean isEmpty() {
@@ -173,7 +177,7 @@ public class FluidTankBehaviour extends BlockEntityBehaviour {
             action.accept(tankSegment);
     }
 
-    public LazyOptional<? extends IFluidHandler> getCapability() {
+    public Storage<FluidVariant> getCapability() {
         return capability;
     }
 

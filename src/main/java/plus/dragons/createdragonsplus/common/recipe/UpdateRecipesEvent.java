@@ -23,14 +23,12 @@ import com.mojang.logging.LogUtils;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import net.fabricmc.fabric.api.event.Event;
+import net.fabricmc.fabric.api.event.EventFactory;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.item.crafting.RecipeType;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.TagsUpdatedEvent;
-import net.minecraftforge.eventbus.api.Event;
-import net.minecraftforge.fml.LogicalSide;
 import org.jetbrains.annotations.ApiStatus.Internal;
 import org.slf4j.Logger;
 import plus.dragons.createdragonsplus.mixin.minecraft.RecipeManagerAccessor;
@@ -40,11 +38,13 @@ import plus.dragons.createdragonsplus.mixin.minecraft.RecipeManagerAccessor;
  *
  * <p>This event is not cancellable and does not have a result.</p>
  *
- * <p>This event is fired on the {@linkplain MinecraftForge#EVENT_BUS game event bus},
- * only on the {@linkplain LogicalSide#SERVER logical server}, right after the
- * {@link TagsUpdatedEvent}. Therefore, updated tags and data maps can be retrieved in this event.</p>
+ * <p>This callback runs on the logical server after registry tags are updated and before recipes are synced.</p>
  */
-public class UpdateRecipesEvent extends Event {
+public class UpdateRecipesEvent {
+    public static final Event<Callback> EVENT = EventFactory.createArrayBacked(Callback.class, callbacks -> event -> {
+        for (Callback callback : callbacks)
+            callback.onUpdateRecipes(event);
+    });
     private static final Logger LOGGER = LogUtils.getLogger();
     private final RecipeManager recipeManager;
     private final Map<RecipeType<?>, Map<ResourceLocation, Recipe<?>>> byType;
@@ -108,5 +108,10 @@ public class UpdateRecipesEvent extends Event {
         ((RecipeManagerAccessor) recipeManager).setByName(ImmutableMap.copyOf(byName));
         LOGGER.debug("Added {} recipes to RecipeManager", added);
         LOGGER.debug("Removed {} recipes from RecipeManager", removed);
+    }
+
+    @FunctionalInterface
+    public interface Callback {
+        void onUpdateRecipes(UpdateRecipesEvent event);
     }
 }

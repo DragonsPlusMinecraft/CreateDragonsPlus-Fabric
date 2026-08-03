@@ -34,9 +34,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.loading.FMLLoader;
 import org.jetbrains.annotations.ApiStatus.Internal;
+import plus.dragons.createdragonsplus.client.JeiSmokeTestStatus;
 import plus.dragons.createdragonsplus.common.CDPCommon;
 import plus.dragons.createdragonsplus.common.kinetics.fan.coloring.DyeFluidMixingRecipes;
 import plus.dragons.createdragonsplus.config.CDPConfig;
@@ -70,6 +69,11 @@ public class CDPJeiPlugin implements IModPlugin {
         if (CDPConfig.recipes().enableBulkEnding.get())
             this.categories.add(FanEndingCategory.create());
         registration.addRecipeCategories(categories.toArray(IRecipeCategory[]::new));
+        JeiSmokeTestStatus.categoriesRegistered(categories.size() == 4
+                && categories.stream().anyMatch(FanColoringCategory.class::isInstance)
+                && categories.stream().anyMatch(FanFreezingCategory.class::isInstance)
+                && categories.stream().anyMatch(FanSandingCategory.class::isInstance)
+                && categories.stream().anyMatch(FanEndingCategory.class::isInstance));
     }
 
     @Override
@@ -81,18 +85,18 @@ public class CDPJeiPlugin implements IModPlugin {
                     .flatMap(java.util.Optional::stream)
                     .toList();
             registration.addRecipes(CREATE_MIXING, recipes);
+            JeiSmokeTestStatus.recipesRegistered(recipes.size());
         }
     }
 
     @Override
     public void registerRecipeCatalysts(IRecipeCatalystRegistration registration) {
         categories.forEach(category -> category.registerCatalysts(registration));
+        JeiSmokeTestStatus.catalystsRegistered();
     }
 
     @Internal
     public static Level getLevel() {
-        if (FMLLoader.getDist() != Dist.CLIENT)
-            throw new IllegalStateException("Retreiving client level is only supported for client");
         var minecraft = Minecraft.getInstance();
         Preconditions.checkNotNull(minecraft, ErrorMessages.notNull("minecraft"));
         var level = minecraft.level;
@@ -102,8 +106,6 @@ public class CDPJeiPlugin implements IModPlugin {
 
     @Internal
     public static RecipeManager getRecipeManager() {
-        if (FMLLoader.getDist() != Dist.CLIENT)
-            throw new IllegalStateException("Retreiving recipe manager from client level is only supported for client");
         var minecraft = Minecraft.getInstance();
         Preconditions.checkNotNull(minecraft, ErrorMessages.notNull("minecraft"));
         var level = minecraft.level;

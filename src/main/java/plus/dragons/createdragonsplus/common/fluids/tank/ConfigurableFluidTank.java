@@ -20,15 +20,17 @@ package plus.dragons.createdragonsplus.common.fluids.tank;
 
 import com.google.common.base.Predicates;
 import com.simibubi.create.foundation.fluid.SmartFluidTank;
+import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import net.minecraftforge.fluids.FluidStack;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
+import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 
 public class ConfigurableFluidTank extends SmartFluidTank {
     protected Predicate<FluidStack> insertion = Predicates.alwaysTrue();
     protected Predicate<FluidStack> extraction = Predicates.alwaysTrue();
 
-    public ConfigurableFluidTank(int capacity, Consumer<FluidStack> updateCallback) {
+    public ConfigurableFluidTank(long capacity, Consumer<FluidStack> updateCallback) {
         super(capacity, updateCallback);
     }
 
@@ -62,36 +64,26 @@ public class ConfigurableFluidTank extends SmartFluidTank {
         return this;
     }
 
-    public int fill(FluidStack resource, FluidAction action, boolean forced) {
-        return forced ? super.fill(resource, action) : this.fill(resource, action);
+    public long insert(FluidVariant resource, long maxAmount, TransactionContext transaction, boolean forced) {
+        return forced ? super.insert(resource, maxAmount, transaction) : insert(resource, maxAmount, transaction);
     }
 
-    public FluidStack drain(FluidStack resource, FluidAction action, boolean forced) {
-        return forced ? super.drain(resource, action) : this.drain(resource, action);
-    }
-
-    public FluidStack drain(int maxDrain, FluidAction action, boolean forced) {
-        return forced ? super.drain(maxDrain, action) : this.drain(maxDrain, action);
+    public long extract(FluidVariant resource, long maxAmount, TransactionContext transaction, boolean forced) {
+        return forced ? super.extract(resource, maxAmount, transaction) : extract(resource, maxAmount, transaction);
     }
 
     @Override
-    public int fill(FluidStack resource, FluidAction action) {
-        if (insertion.test(resource))
-            return super.fill(resource, action);
-        return 0;
+    public long insert(FluidVariant resource, long maxAmount, TransactionContext transaction) {
+        if (!resource.isBlank() && insertion.test(new FluidStack(resource, maxAmount)))
+            return super.insert(resource, maxAmount, transaction);
+        return 0L;
     }
 
     @Override
-    public FluidStack drain(FluidStack resource, FluidAction action) {
-        if (extraction.test(fluid))
-            return super.drain(resource, action);
-        return FluidStack.EMPTY;
-    }
-
-    @Override
-    public FluidStack drain(int maxDrain, FluidAction action) {
-        if (extraction.test(fluid))
-            return super.drain(maxDrain, action);
-        return FluidStack.EMPTY;
+    public long extract(FluidVariant resource, long maxAmount, TransactionContext transaction) {
+        FluidStack stored = getFluid();
+        if (!stored.isEmpty() && extraction.test(stored))
+            return super.extract(resource, maxAmount, transaction);
+        return 0L;
     }
 }

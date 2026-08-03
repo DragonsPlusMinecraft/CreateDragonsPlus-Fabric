@@ -18,9 +18,11 @@
 
 package plus.dragons.createdragonsplus.common.fluids.dragonBreath;
 
-import com.tterrag.registrate.builders.FluidBuilder.FluidTypeFactory;
-import java.util.function.Supplier;
+import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
+import io.github.fabricators_of_create.porting_lib.fluids.FluidType;
+import io.github.fabricators_of_create.porting_lib.fluids.sound.SoundActions;
 import net.createmod.catnip.theme.Color;
+import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceLocation;
@@ -34,30 +36,42 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Rarity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.pathfinder.BlockPathTypes;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.SoundActions;
-import net.minecraftforge.fluids.FluidStack;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
+import plus.dragons.createdragonsplus.common.CDPCommon;
+import plus.dragons.createdragonsplus.common.entity.EntityPersistentData;
+import plus.dragons.createdragonsplus.common.fluids.CDPFluidUnits;
 import plus.dragons.createdragonsplus.common.fluids.SolidRenderFluidType;
 import plus.dragons.createdragonsplus.config.CDPConfig;
 
 public final class DragonBreathFluidType extends SolidRenderFluidType {
-    private DragonBreathFluidType(Properties properties, ResourceLocation stillTexture, ResourceLocation flowingTexture, int tintColor, Vector3f fogColor, Supplier<Float> fogDistanceModifier) {
-        super(properties, stillTexture, flowingTexture, tintColor, fogColor, fogDistanceModifier);
+    private DragonBreathFluidType(Properties properties, ResourceLocation stillTexture, ResourceLocation flowingTexture,
+            int tintColor, Vector3f fogColor) {
+        super(properties, stillTexture, flowingTexture, tintColor, fogColor, DragonBreathFluidType::getVisibility);
     }
 
-    public static FluidTypeFactory create() {
-        int tintColor = 0xFFFFFFFF;
+    public static DragonBreathFluidType create(ResourceLocation stillTexture, ResourceLocation flowingTexture) {
         Vector3f fogColor = new Color(0xDE9DC5, false).asVectorF();
-        return (properties, stillTexture, flowingTexture) -> new DragonBreathFluidType(properties,
-                stillTexture,
-                flowingTexture,
-                tintColor,
-                fogColor,
-                DragonBreathFluidType::getVisibility);
+        FluidType.Properties properties = FluidType.Properties.create()
+                .descriptionId(Util.makeDescriptionId("fluid", CDPCommon.asResource("dragon_breath")))
+                .rarity(Rarity.UNCOMMON)
+                .density(3000)
+                .viscosity(6000)
+                .lightLevel(15)
+                .motionScale(0.07)
+                .canSwim(false)
+                .canDrown(false)
+                .pathType(BlockPathTypes.DAMAGE_OTHER)
+                .adjacentPathType(null)
+                .sound(SoundActions.FLUID_VAPORIZE, SoundEvents.DRAGON_FIREBALL_EXPLODE)
+                .sound(SoundActions.BUCKET_EMPTY, SoundEvents.BUCKET_EMPTY_LAVA)
+                .sound(SoundActions.BUCKET_FILL, SoundEvents.BUCKET_FILL_LAVA);
+        return new DragonBreathFluidType(properties, stillTexture, flowingTexture, 0xFFFFFFFF, fogColor);
     }
 
     private static float getVisibility() {
@@ -70,27 +84,29 @@ public final class DragonBreathFluidType extends SolidRenderFluidType {
         double y = entity.getY();
         entity.moveRelative(0.02F, movementVector);
         entity.move(MoverType.SELF, entity.getDeltaMovement());
-        if (entity.getFluidTypeHeight(this) <= entity.getFluidJumpThreshold()) {
+        BlockPos entityPos = entity.blockPosition();
+        double fluidSurface = entityPos.getY() + state.getHeight(entity.level(), entityPos);
+        double immersedHeight = Math.max(0, fluidSurface - entity.getY());
+        if (immersedHeight <= entity.getFluidJumpThreshold()) {
             entity.setDeltaMovement(entity.getDeltaMovement().multiply(0.5, 0.8F, 0.5));
-            Vec3 adjustedMovement = entity.getFluidFallingAdjustedMovement(gravity, falling, entity.getDeltaMovement());
-            entity.setDeltaMovement(adjustedMovement);
+            entity.setDeltaMovement(entity.getFluidFallingAdjustedMovement(gravity, falling, entity.getDeltaMovement()));
         } else {
             entity.setDeltaMovement(entity.getDeltaMovement().scale(0.5));
         }
-        if (gravity != 0.0) {
+        if (gravity != 0.0)
             entity.setDeltaMovement(entity.getDeltaMovement().add(0.0, -gravity / 4.0, 0.0));
-        }
         Vec3 deltaMovement = entity.getDeltaMovement();
-        if (entity.horizontalCollision && entity.isFree(deltaMovement.x, deltaMovement.y + 0.6F - entity.getY() + y, deltaMovement.z)) {
+        if (entity.horizontalCollision
+                && entity.isFree(deltaMovement.x, deltaMovement.y + 0.6F - entity.getY() + y, deltaMovement.z))
             entity.setDeltaMovement(deltaMovement.x, 0.3F, deltaMovement.z);
-        }
         return true;
     }
 
     @Override
     public void setItemMovement(ItemEntity entity) {
-        Vec3 vec3 = entity.getDeltaMovement();
-        entity.setDeltaMovement(vec3.x * (double) 0.95F, vec3.y + (double) (vec3.y < (double) 0.06F ? 5.0E-4F : 0.0F), vec3.z * (double) 0.95F);
+        Vec3 movement = entity.getDeltaMovement();
+        entity.setDeltaMovement(movement.x * 0.95F,
+                movement.y + (movement.y < 0.06F ? 5.0E-4F : 0.0F), movement.z * 0.95F);
     }
 
     @Override
@@ -100,18 +116,19 @@ public final class DragonBreathFluidType extends SolidRenderFluidType {
 
     @Override
     public void onVaporize(@Nullable Player player, Level level, BlockPos pos, FluidStack stack) {
-        SoundEvent sound = this.getSound(player, level, pos, SoundActions.FLUID_VAPORIZE);
-        level.playSound(player, pos, sound != null ? sound : SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.5F, 2.6F + (level.random.nextFloat() - level.random.nextFloat()) * 0.8F);
+        SoundEvent sound = getSound(player, level, pos, SoundActions.FLUID_VAPORIZE);
+        level.playSound(player, pos, sound != null ? sound : SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.5F,
+                2.6F + (level.random.nextFloat() - level.random.nextFloat()) * 0.8F);
 
-        AreaEffectCloud aoe = new AreaEffectCloud(level, pos.getX(), pos.getY(), pos.getZ());
-        aoe.setOwner(player);
-        aoe.setParticle(ParticleTypes.DRAGON_BREATH);
-        aoe.setRadius(stack.getAmount() / 500F);
-        aoe.setDuration(stack.getAmount() / 5);
-        aoe.setRadiusPerTick(-0.01F);
-        aoe.addEffect(new MobEffectInstance(MobEffects.HARM, 1, 1));
-        aoe.getPersistentData().putBoolean("DragonBreath", true);
+        AreaEffectCloud cloud = new AreaEffectCloud(level, pos.getX(), pos.getY(), pos.getZ());
+        cloud.setOwner(player);
+        cloud.setParticle(ParticleTypes.DRAGON_BREATH);
+        cloud.setRadius(CDPFluidUnits.dragonBreathCloudRadius(stack.getAmount()));
+        cloud.setDuration(CDPFluidUnits.dragonBreathCloudDuration(stack.getAmount()));
+        cloud.setRadiusPerTick(-0.01F);
+        cloud.addEffect(new MobEffectInstance(MobEffects.HARM, 1, 1));
+        EntityPersistentData.get(cloud).putBoolean("DragonBreath", true);
         level.levelEvent(2006, pos, -1);
-        level.addFreshEntity(aoe);
+        level.addFreshEntity(cloud);
     }
 }

@@ -19,39 +19,35 @@
 package plus.dragons.createdragonsplus.common.registry;
 
 import com.simibubi.create.content.processing.recipe.ProcessingRecipeSerializer;
+import java.util.List;
 import java.util.function.Supplier;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeSerializer;
-import net.minecraft.world.item.crafting.RecipeType;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import plus.dragons.createdragonsplus.common.CDPCommon;
 import plus.dragons.createdragonsplus.common.kinetics.fan.coloring.ColoringRecipe;
 import plus.dragons.createdragonsplus.common.kinetics.fan.ending.EndingRecipe;
 import plus.dragons.createdragonsplus.common.kinetics.fan.freezing.FreezingRecipe;
 import plus.dragons.createdragonsplus.common.kinetics.fan.sanding.SandingRecipe;
 import plus.dragons.createdragonsplus.common.recipe.RecipeTypeInfo;
 
-public class CDPRecipes {
-    private static final DeferredRegister<RecipeType<?>> TYPES = DeferredRegister.create(ForgeRegistries.RECIPE_TYPES, CDPCommon.ID);
-    private static final DeferredRegister<RecipeSerializer<?>> SERIALIZERS = DeferredRegister.create(ForgeRegistries.RECIPE_SERIALIZERS, CDPCommon.ID);
-
-    public static final RecipeTypeInfo<ColoringRecipe> COLORING = register("coloring",
+public final class CDPRecipes {
+    public static final RecipeTypeInfo<ColoringRecipe> COLORING = create("coloring",
             () -> new ProcessingRecipeSerializer<>(ColoringRecipe::new));
-    public static final RecipeTypeInfo<FreezingRecipe> FREEZING = register("freezing",
+    public static final RecipeTypeInfo<FreezingRecipe> FREEZING = create("freezing",
             () -> new ProcessingRecipeSerializer<>(FreezingRecipe::new));
-    public static final RecipeTypeInfo<SandingRecipe> SANDING = register("sanding",
+    public static final RecipeTypeInfo<SandingRecipe> SANDING = create("sanding",
             () -> new ProcessingRecipeSerializer<>(SandingRecipe::new));
-    public static final RecipeTypeInfo<EndingRecipe> ENDING = register("ending",
+    public static final RecipeTypeInfo<EndingRecipe> ENDING = create("ending",
             () -> new ProcessingRecipeSerializer<>(EndingRecipe::new));
+    private static final List<RecipeTypeInfo<?>> ALL = List.of(COLORING, FREEZING, SANDING, ENDING);
 
-    public static void register(IEventBus modBus) {
-        TYPES.register(modBus);
-        SERIALIZERS.register(modBus);
+    public static void register() {
+        ALL.forEach(RecipeTypeInfo::register);
     }
 
-    private static <R extends Recipe<?>> RecipeTypeInfo<R> register(String name, Supplier<? extends RecipeSerializer<R>> serializer) {
-        return new RecipeTypeInfo<>(name, serializer, SERIALIZERS, TYPES);
+    private static <R extends Recipe<?>> RecipeTypeInfo<R> create(
+            String name, Supplier<? extends RecipeSerializer<R>> serializer) {
+        return new RecipeTypeInfo<>(name, serializer);
     }
+
+    private CDPRecipes() {}
 }

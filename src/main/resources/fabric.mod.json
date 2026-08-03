@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "${mod_id}",
+  "version": "${mod_version}",
+  "name": "${mod_name}",
+  "description": "${mod_description}",
+  "authors": ["${mod_authors}"],
+  "contact": {
+    "sources": "${mod_github}",
+    "issues": "${mod_github}/issues"
+  },
+  "license": "${mod_license}",
+  "icon": "${mod_logo}",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["plus.dragons.createdragonsplus.common.CDPCommon"],
+    "client": ["plus.dragons.createdragonsplus.client.CDPClient"],
+    "fabric-datagen": ["plus.dragons.createdragonsplus.data.CDPData"],
+    "fabric-gametest": ["plus.dragons.createdragonsplus.common.gametest.CDPGameTests"],
+    "jei_mod_plugin": ["plus.dragons.createdragonsplus.integration.jei.CDPJeiPlugin"]
+  },
+  "mixins": ["create_dragons_plus.mixins.json"],
+  "accessWidener": "create_dragons_plus.accesswidener",
+  "depends": {
+    "minecraft": "${minecraft_version}",
+    "fabricloader": ">=${fabric_loader_version}",
+    "fabric-api": ">=${fabric_api_version}",
+    "create": "${create_version_range}"
+  },
+  "suggests": {
+    "jei": ">=${jei_version}",
+    "dye_depot": "*",
+    "arts_and_crafts": "*"
+  }
+}

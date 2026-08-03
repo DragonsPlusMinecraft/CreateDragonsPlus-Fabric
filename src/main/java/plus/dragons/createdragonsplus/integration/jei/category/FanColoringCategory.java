@@ -26,12 +26,13 @@ import com.simibubi.create.compat.jei.EmptyBackground;
 import com.simibubi.create.compat.jei.category.ProcessingViaFanCategory;
 import com.simibubi.create.compat.jei.category.animations.AnimatedKinetics;
 import com.simibubi.create.foundation.item.ItemHelper;
+import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import mezz.jei.api.forge.ForgeTypes;
+import mezz.jei.api.fabric.constants.FabricTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.recipe.IFocusGroup;
@@ -44,8 +45,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.material.Fluid;
-import net.minecraftforge.fluids.FluidStack;
 import plus.dragons.createdragonsplus.common.CDPCommon;
+import plus.dragons.createdragonsplus.common.fluids.CDPFluidUnits;
 import plus.dragons.createdragonsplus.common.fluids.dye.DyeVariant;
 import plus.dragons.createdragonsplus.common.fluids.dye.DyeVariantRegistry;
 import plus.dragons.createdragonsplus.common.kinetics.fan.coloring.ColoringRecipe;
@@ -87,7 +88,9 @@ public class FanColoringCategory extends ProcessingViaFanCategory<ColoringRecipe
         if (dyeFluid == null)
             return;
         builder.addInvisibleIngredients(RecipeIngredientRole.CATALYST)
-                .addIngredient(ForgeTypes.FLUID_STACK, new FluidStack((Fluid) dyeFluid.getSource(), 1000));
+                .addIngredient(FabricTypes.FLUID_STACK,
+                        com.simibubi.create.compat.jei.category.CreateRecipeCategory.toJei(
+                                new FluidStack((Fluid) dyeFluid.getSource(), CDPFluidUnits.BUCKET)));
         dyeFluid.getBucket().ifPresent(bucket -> builder.addInvisibleIngredients(RecipeIngredientRole.CATALYST)
                 .addItemStack(new ItemStack(bucket)));
     }

@@ -32,7 +32,6 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.eventbus.api.IEventBus;
 import plus.dragons.createdragonsplus.common.CDPCommon;
 import plus.dragons.createdragonsplus.common.kinetics.fan.coloring.ColoringFanProcessingType;
 import plus.dragons.createdragonsplus.config.CDPConfig;
@@ -87,7 +86,7 @@ public class CDPItemAttributes {
         STAINABLE_CACHE.clear();
     }
 
-    public static void register(IEventBus modBus) {
+    public static void register() {
         // Create-owned registries are populated directly before their freeze callback runs.
     }
 }

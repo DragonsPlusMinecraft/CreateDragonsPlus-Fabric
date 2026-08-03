@@ -1,15 +1,15 @@
 {
-  "type": "create:mixing",
-  "conditions": [
+  "fabric:load_conditions": [
     {
-      "type": "create_dragons_plus:config_feature",
+      "condition": "create_dragons_plus:config_feature",
       "feature": "create_dragons_plus:fluid/dye"
     }
   ],
+  "type": "create:mixing",
   "heatRequirement": "heated",
   "ingredients": [
     {
-      "amount": 250,
+      "amount": 20250,
       "fluid": "create_dragons_plus:red_dye",
       "nbt": {}
     }

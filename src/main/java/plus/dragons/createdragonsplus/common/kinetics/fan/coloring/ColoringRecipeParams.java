@@ -18,14 +18,14 @@
 
 package plus.dragons.createdragonsplus.common.kinetics.fan.coloring;
 
-import net.minecraftforge.fluids.FluidType;
+import plus.dragons.createdragonsplus.common.fluids.CDPFluidUnits;
 
 public final class ColoringRecipeParams {
-    public static final int DYE_ITEM_FLUID_AMOUNT = 250;
+    public static final int DYE_ITEM_FLUID_AMOUNT = Math.toIntExact(CDPFluidUnits.QUARTER_BUCKET);
     public static final int AUTOMATIC_BULK_RECIPE_INPUTS = 8;
     public static final int DEFAULT_DYE_FLUID_AMOUNT = (DYE_ITEM_FLUID_AMOUNT
             + AUTOMATIC_BULK_RECIPE_INPUTS - 1) / AUTOMATIC_BULK_RECIPE_INPUTS;
-    public static final int MAX_DYE_FLUID_AMOUNT = FluidType.BUCKET_VOLUME;
+    public static final int MAX_DYE_FLUID_AMOUNT = Math.toIntExact(CDPFluidUnits.BUCKET);
 
     private ColoringRecipeParams() {}
 }

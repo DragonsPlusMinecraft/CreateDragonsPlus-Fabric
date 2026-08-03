@@ -24,10 +24,10 @@ import com.simibubi.create.content.processing.recipe.ProcessingOutput;
 import com.simibubi.create.content.processing.recipe.ProcessingRecipeBuilder;
 import com.simibubi.create.foundation.fluid.FluidIngredient;
 import java.util.Optional;
+import net.fabricmc.fabric.api.recipe.v1.ingredient.DefaultCustomIngredients;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.common.crafting.StrictNBTIngredient;
 import plus.dragons.createdragonsplus.common.CDPCommon;
 import plus.dragons.createdragonsplus.common.fluids.dye.DyeVariant;
 import plus.dragons.createdragonsplus.common.registry.CDPFanProcessingTypes;
@@ -52,7 +52,7 @@ public final class DyeFluidMixingRecipes {
                 .processForDyeFluidMixing(input, level)
                 .filter(result -> result.outputs().size() <= MAX_ITEM_OUTPUTS)
                 .map(result -> new ProcessingRecipeBuilder<>(MixingRecipe::new, runtimeRecipeId(variant))
-                        .withItemIngredients(StrictNBTIngredient.of(copyWithCount(input, 1)))
+                        .withItemIngredients(DefaultCustomIngredients.nbt(copyWithCount(input, 1), true))
                         .withFluidIngredients(FluidIngredient.fromTag(fluidTag, result.dyeFluidAmount()))
                         .withItemOutputs(result.outputs().toArray(ProcessingOutput[]::new))
                         .build());

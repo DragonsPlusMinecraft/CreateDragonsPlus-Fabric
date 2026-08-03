@@ -18,6 +18,7 @@
 
 package plus.dragons.createdragonsplus.common.fluids.dye;
 
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
@@ -28,7 +29,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.material.Fluid;
-import net.minecraftforge.fml.ModList;
 import org.jetbrains.annotations.Nullable;
 import plus.dragons.createdragonsplus.common.CDPCommon;
 
@@ -47,7 +47,7 @@ public record DyeVariant(
     }
 
     public boolean isAvailable() {
-        return requiredModId == null || ModList.get().isLoaded(requiredModId);
+        return requiredModId == null || FabricLoader.getInstance().isModLoaded(requiredModId);
     }
 
     public String fluidName() {

@@ -18,9 +18,7 @@
 
 package plus.dragons.createdragonsplus.common.fluids.dye;
 
-import net.minecraftforge.eventbus.api.Event;
-
-public class RegisterDyeVariantsEvent extends Event {
+public class RegisterDyeVariantsEvent {
     private final DyeVariantRegistry.Builder builder;
 
     public RegisterDyeVariantsEvent(DyeVariantRegistry.Builder builder) {

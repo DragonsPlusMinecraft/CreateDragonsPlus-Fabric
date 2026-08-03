@@ -1,9 +1,9 @@
 plugins {
+    id 'fabric-loom' version '1.10.5'
     id 'java-library'
     id 'maven-publish'
-    id 'net.neoforged.moddev.legacyforge' version '2.0.107'
-    id "me.modmuss50.mod-publish-plugin" version "2.0.0-beta.2"
-    id "com.diffplug.spotless" version "7.0.2"
+    id 'me.modmuss50.mod-publish-plugin' version '2.0.0-beta.2'
+    id 'com.diffplug.spotless' version '7.0.2'
     id 'idea'
 }
 
@@ -14,239 +14,211 @@ tasks.named('wrapper', Wrapper).configure {
 version = mod_version
 group = mod_group_id
 
+base {
+    archivesName = "${mod_artifact_id}-${minecraft_version}"
+}
+
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(17)
     withSourcesJar()
 }
 
-def allIntegrationSourceSets = [
-        "dye_depot",
-        "dyenamics",
-        "arts_and_crafts",
-        "create_garnished",
-]
+def runDirectory = providers.gradleProperty('run_directory').orElse('run').get()
 
-def isIntegrationEnabled = { name ->
-    providers.gradleProperty("enable_${name}_integration")
-            .map { it.toBoolean() }
-            .orElse(true)
-            .get()
+loom {
+    splitEnvironmentSourceSets()
 }
-
-def enabledIntegrationSourceSets = allIntegrationSourceSets.findAll { name ->
-    isIntegrationEnabled(name)
-}
-
-def hasIntegration = { name ->
-    enabledIntegrationSourceSets.contains(name)
-}
-
-def runDirectory = providers.gradleProperty("run_directory").orElse("run").get()
 
 sourceSets {
-    enabledIntegrationSourceSets.each { name ->
-        create(name) {
-            java {
-                srcDir "src/integration/${name}/java"
-            }
-            resources {
-                srcDir "src/integration/${name}/resources"
-            }
-            compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
-            runtimeClasspath += output + compileClasspath
-        }
-    }
     main {
-        enabledIntegrationSourceSets.each { name ->
-            runtimeClasspath += sourceSets[name].output
+        java {
+            srcDir 'src/integration/dye_depot/java'
+            srcDir 'src/integration/arts_and_crafts/java'
+            exclude 'plus/dragons/createdragonsplus/client/**'
+            exclude 'plus/dragons/createdragonsplus/integration/jei/**'
+            exclude 'plus/dragons/createdragonsplus/data/CDPData.java'
+            exclude 'plus/dragons/createdragonsplus/common/processing/blaze/BlazeBlockRenderer.java'
+            exclude 'plus/dragons/createdragonsplus/common/processing/blaze/BlazeBlockVisual.java'
+            exclude 'plus/dragons/createdragonsplus/common/processing/blaze/BlazeMovementBehaviour.java'
+            exclude 'plus/dragons/createdragonsplus/mixin/create/AirFlowParticleMixin.java'
+        }
+        resources {
+            srcDir 'src/generated/resources'
+            srcDir 'src/integration/dye_depot/resources'
+            srcDir 'src/integration/arts_and_crafts/resources'
+            exclude '.cache/'
+        }
+    }
+    client {
+        java {
+            srcDir 'src/main/java'
+            include 'plus/dragons/createdragonsplus/client/**'
+            include 'plus/dragons/createdragonsplus/integration/jei/**'
+            include 'plus/dragons/createdragonsplus/data/CDPData.java'
+            include 'plus/dragons/createdragonsplus/common/processing/blaze/BlazeBlockRenderer.java'
+            include 'plus/dragons/createdragonsplus/common/processing/blaze/BlazeBlockVisual.java'
+            include 'plus/dragons/createdragonsplus/common/processing/blaze/BlazeMovementBehaviour.java'
+            include 'plus/dragons/createdragonsplus/mixin/create/AirFlowParticleMixin.java'
         }
     }
 }
 
-Provider<RegularFile> mainRefmap
-mixin {
-    mainRefmap = add(sourceSets.main, "${mod_id}.refmap.json")
-    config "${mod_id}.mixins.json"
-    if (hasIntegration("create_garnished")) {
-        config "${mod_id}.create_garnished.mixins.json"
-    }
+// Create Fabric 6.0.8.1 bundles Registrate APIs whose public signatures mention
+// Minecraft client classes. Keep those classes available only to javac while a
+// source scan below still enforces that our common sources do not import them.
+configurations {
+    compileClasspath.extendsFrom minecraftClientOnlyNamedCompile
 }
 
-def mixinConfigs = ["${mod_id}.mixins.json"]
-if (hasIntegration("create_garnished")) {
-    mixinConfigs.add("${mod_id}.create_garnished.mixins.json")
-}
-
-tasks.named("jar", Jar) {
-    from "LICENSING.txt"
-    from "LICENSE.txt"
-    from "LICENSE-CREATE.txt"
-    from mainRefmap
-    enabledIntegrationSourceSets.each { name ->
-        from sourceSets[name].output
-    }
-    manifest.attributes("MixinConfigs": mixinConfigs.join(","))
-    exclude ".cache"
-}
-
-tasks.named("sourcesJar", Jar) {
-    enabledIntegrationSourceSets.each { name ->
-        from sourceSets[name].allJava
-    }
-}
-
-legacyForge {
-    version = "${minecraft_version}-${forge_version}"
-    validateAccessTransformers = false
-
-    accessTransformers.from "src/main/resources/META-INF/accesstransformer.cfg"
-
-    parchment {
-        minecraftVersion = parchment_minecraft_version
-        mappingsVersion = parchment_mappings_version
-    }
-
-    runs {
-        configureEach {
-            gameDirectory = project.file(runDirectory)
-            systemProperty "forge.logging.markers", "REGISTRIES"
-            systemProperty "forge.logging.console.level", "debug"
-            systemProperty "forge.enabledGameTestNamespaces", project.mod_id
-            mixinConfigs.each { config ->
-                programArgument "-mixin.config=${config}"
-            }
-        }
-
-        client {
-            client()
-        }
-
-        server {
-            server()
-            programArgument "--nogui"
-        }
-
-        gameTestServer {
-            type = "gameTestServer"
-        }
-
-        data {
-            data()
-            def dataArgs = [
-                    "--mod", project.mod_id,
-                    "--all",
-                    "--output", file("src/generated/resources/").getAbsolutePath(),
-                    "--existing", file("src/main/resources/").getAbsolutePath(),
-                    "--existing", file("src/main/translations/").getAbsolutePath(),
-            ]
-            enabledIntegrationSourceSets.each { name ->
-                def integrationResources = file("src/integration/${name}/resources/")
-                if (integrationResources.exists()) {
-                    dataArgs.addAll("--existing", integrationResources.getAbsolutePath())
-                }
-            }
-            programArguments.addAll dataArgs
-        }
-    }
+loom {
+    accessWidenerPath = file('src/main/resources/create_dragons_plus.accesswidener')
 
     mods {
         "${mod_id}" {
-            sourceSet(sourceSets.main)
-            enabledIntegrationSourceSets.each { name ->
-                sourceSet(sourceSets[name])
-            }
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
+
+    runs {
+        client {
+            client()
+            runDir runDirectory
+        }
+        clientSmoke {
+            client()
+            name 'Client Smoke Test'
+            runDir "${runDirectory}/client-smoke"
+            property 'create_dragons_plus.client_smoke_test', 'true'
+        }
+        clientJeiSmoke {
+            client()
+            name 'JEI Client Smoke Test'
+            runDir "${runDirectory}/client-jei-smoke"
+            property 'create_dragons_plus.client_smoke_test', 'true'
+            property 'create_dragons_plus.jei_smoke_test', 'true'
+            programArg '--quickPlaySingleplayer'
+            programArg 'CDPJeiSmoke'
+        }
+        server {
+            server()
+            runDir "${runDirectory}/server"
+            programArg '--nogui'
+        }
+        serverSmoke {
+            server()
+            name 'Dedicated Server Smoke Test'
+            runDir "${runDirectory}/server-smoke"
+            property 'create_dragons_plus.server_smoke_test', 'true'
+            programArg '--nogui'
+        }
+        datagen {
+            client()
+            name 'Data Generation'
+            runDir "${runDirectory}/datagen"
+            vmArg '-Dfabric-api.datagen'
+            vmArg "-Dfabric-api.datagen.output-dir=${file('src/generated/resources')}"
+            vmArg "-Dfabric-api.datagen.modid=${mod_id}"
+            vmArg "-Dporting_lib.datagen.existing_resources=${file('src/main/resources')}"
+        }
+        gametestServer {
+            server()
+            name 'Headless GameTests'
+            runDir "${runDirectory}/gametest"
+            ideConfigGenerated false
+            vmArg '-Dfabric-api.gametest'
+            vmArg "-Dfabric-api.gametest.report-file=${layout.buildDirectory.file('junit.xml').get().asFile}"
+        }
+        configureEach {
+            vmArg '-XX:+AllowEnhancedClassRedefinition'
+            vmArg '-XX:+IgnoreUnrecognizedVMOptions'
+            property 'mixin.debug.export', 'true'
         }
     }
 }
 
 repositories {
-    maven { url "https://maven.createmod.net" } // Ponder, Flywheel
-    maven { url "https://maven.ithundxr.dev/mirror" } // Registrate
-    maven { url "https://maven.blamejared.com" } // JEI
-    maven { url "https://maven.theillusivec4.top/" } // Curios API
-    maven { url "https://maven.fallenbreath.me/releases" } // Conditional Mixin
-    maven { url "https://www.cursemaven.com" }
-    maven { url "https://api.modrinth.com/maven" }
-    maven { url "https://maven.dragons.plus/releases" }
+    maven { url 'https://maven.parchmentmc.org' }
+    maven { url 'https://mvn.devos.one/snapshots' }
+    maven { url 'https://mvn.devos.one/releases' }
+    maven { url 'https://maven.createmod.net' }
+    maven { url 'https://raw.githubusercontent.com/Fuzss/modresources/main/maven' }
+    maven { url 'https://maven.jamieswhiteshirt.com/libs-release' }
+    maven { url 'https://maven.blamejared.com' }
+    maven { url 'https://api.modrinth.com/maven' }
+    maven { url 'https://www.cursemaven.com' }
+    maven { url 'https://maven.dragons.plus/releases' }
     mavenCentral()
 }
 
 dependencies {
-    modImplementation(jarJar("me.fallenbreath:conditional-mixin-forge:${conditional_mixin_version}"))
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    mappings loom.layered {
+        officialMojangMappings {
+            nameSyntheticMembers = false
+        }
+        parchment "org.parchmentmc.data:parchment-${parchment_minecraft_version}:${parchment_mappings_version}@zip"
+    }
 
-    modCompileOnly("dev.engine-room.flywheel:flywheel-forge-api-${flywheel_minecraft_version}:${flywheel_version}")
-    modRuntimeOnly("dev.engine-room.flywheel:flywheel-forge-${flywheel_minecraft_version}:${flywheel_version}")
-    modRuntimeOnly("dev.engine-room.vanillin:vanillin-forge-${flywheel_minecraft_version}:${vanillin_version}")
-    modImplementation("com.tterrag.registrate:Registrate:${registrate_version}")
-    modImplementation("net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}")
-    modImplementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") {
+    modImplementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
+    modImplementation("com.simibubi.create:create-fabric:${create_fabric_version}")
+
+    implementation "io.github.llamalad7:mixinextras-fabric:${mixin_extras_version}"
+    annotationProcessor "io.github.llamalad7:mixinextras-common:${mixin_extras_version}"
+
+    modCompileOnly("mezz.jei:jei-${minecraft_version}-fabric:${jei_version}") {
         transitive false
     }
-
-    implementation("io.github.llamalad7:mixinextras-forge:${mixin_extras_version}")
-    compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:${mixin_extras_version}"))
-    if (!Boolean.getBoolean("idea.sync.active")) {
-        annotationProcessor "org.spongepowered:mixin:0.8.5:processor"
+    if (!providers.gradleProperty('without_jei').isPresent()) {
+        modLocalRuntime("mezz.jei:jei-${minecraft_version}-fabric:${jei_version}") {
+            transitive false
+        }
     }
-
-    modCompileOnly("mezz.jei:jei-${jei_minecraft_version}-common-api:${jei_version}")
-    modCompileOnly("mezz.jei:jei-${jei_minecraft_version}-forge-api:${jei_version}")
-    modRuntimeOnly("mezz.jei:jei-${jei_minecraft_version}-forge:${jei_version}")
-
-    modCompileOnly("top.theillusivec4.curios:curios-forge:${curios_version}+${curios_minecraft_version}:api")
-    modRuntimeOnly("top.theillusivec4.curios:curios-forge:${curios_version}+${curios_minecraft_version}")
-
-    if (hasIntegration("dye_depot")) {
-        modImplementation("maven.modrinth:dye-depot:${dye_depot_version}")
+    if (providers.gradleProperty('with_dye_depot').isPresent()) {
+        modLocalRuntime("maven.modrinth:dl88rsIq:${dye_depot_test_version}") {
+            transitive false
+        }
     }
-
-    if (hasIntegration("dyenamics")) {
-        modImplementation("curse.maven:dyenamics-509276:${dyenamics_version}")
-    }
-
-    if (hasIntegration("arts_and_crafts")) {
-        modImplementation("curse.maven:jinxedlib-1203401:${jinxedlib_version}")
-        modImplementation("curse.maven:artsandcrafts-1034791:${artsandcrafts_version}")
-    }
-
-    if (hasIntegration("create_garnished")) {
-        modImplementation("maven.modrinth:create-garnished:${create_garnished_version}")
-    }
-
-    modCompileOnly("curse.maven:immersive-engineering-231951:${immersive_engineering_version}")
-    if (isIntegrationEnabled("immersive_engineering")) {
-        modRuntimeOnly("curse.maven:immersive-engineering-231951:${immersive_engineering_version}")
+    if (providers.gradleProperty('with_arts_and_crafts').isPresent()) {
+        modLocalRuntime("maven.modrinth:artsandcrafts:${arts_and_crafts_test_version}") {
+            transitive false
+        }
+        // Arts & Crafts declares Jankson as a nested plain library. Loom keeps the
+        // nested jar during remapping, but Fabric's development launcher does not
+        // expose its classes, so mirror it on the test runtime classpath.
+        runtimeOnly 'blue.endless:jankson:1.2.3'
     }
 }
 
-var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
-    var replaceProperties = [
-            minecraft_version      : minecraft_version,
-            minecraft_version_range: minecraft_version_range,
-            forge_version_range    : forge_version_range,
-            loader_version_range   : loader_version_range,
-            mod_id                 : mod_id,
-            mod_name               : mod_name,
-            mod_license            : mod_license,
-            mod_version            : mod_version,
-            mod_authors            : mod_authors,
-            mod_description        : mod_description,
-            mod_github             : mod_github,
-            mod_logo               : mod_logo,
-            create_version_range   : create_version_range,
+tasks.named('processResources', ProcessResources).configure {
+    def replaceProperties = [
+            minecraft_version    : minecraft_version,
+            fabric_loader_version: fabric_loader_version,
+            fabric_api_version   : fabric_api_version,
+            mod_id               : mod_id,
+            mod_name             : mod_name,
+            mod_license          : mod_license,
+            mod_version          : mod_version,
+            mod_authors          : mod_authors,
+            mod_description      : mod_description,
+            mod_github           : mod_github,
+            mod_logo             : mod_logo,
+            create_version_range : create_version_range,
+            jei_version          : jei_version,
     ]
     inputs.properties replaceProperties
-    expand replaceProperties
-    from "src/main/templates"
-    into "build/generated/sources/modMetadata"
+    filesMatching('fabric.mod.json') {
+        expand replaceProperties
+    }
 }
 
-sourceSets.main.resources {
-    srcDir "src/generated/resources"
-    srcDir generateModMetadata
+tasks.named('jar', Jar).configure {
+    from 'LICENSING.txt'
+    from 'LICENSE.txt'
+    from 'LICENSE-CREATE.txt'
+    exclude '.cache'
 }
-
-legacyForge.ideSyncTask generateModMetadata
 
 spotless {
     java {
@@ -255,24 +227,22 @@ spotless {
         removeUnusedImports()
         toggleOffOn()
         importOrder()
-        eclipse().configFile "codeformat/formatter-config.xml"
-        licenseHeaderFile "codeformat/HEADER.txt"
+        eclipse().configFile 'codeformat/formatter-config.xml'
+        licenseHeaderFile 'codeformat/HEADER.txt'
     }
 }
 
-build.dependsOn(spotlessApply)
-
 publishing {
     publications {
-        register("mavenJava", MavenPublication) {
-            artifactId = mod_artifact_id + "-" + minecraft_version
+        register('mavenJava', MavenPublication) {
+            artifactId = mod_artifact_id
             from components.java
         }
     }
     repositories {
         maven {
-            name "DragonsPlus"
-            url "https://maven.dragons.plus/releases"
+            name 'DragonsPlus'
+            url 'https://maven.dragons.plus/releases'
             credentials(PasswordCredentials)
             authentication {
                 basic(BasicAuthentication)
@@ -282,34 +252,221 @@ publishing {
 }
 
 publishMods {
-    file = jar.archiveFile
-    additionalFiles.from sourcesJar.archiveFile
-    changelog = project.file("CHANGELOG.md").text
+    file = remapJar.archiveFile
+    additionalFiles.from remapSourcesJar.archiveFile
+    changelog = project.file('CHANGELOG.md').text
     version = mod_version
     type = BETA
-    displayName = "Create: Dragons Plus ${mod_version} for Create ${minecraft_version}-${create_version_production}"
-    modLoaders.add("forge")
+    displayName = "Create: Dragons Plus ${mod_version} for Create Fabric ${minecraft_version}-${create_version_production}"
+    modLoaders.add('fabric')
 
     curseforge {
-        projectId = "1216624"
-        accessToken = providers.environmentVariable("CURSEFORGE_TOKEN")
+        projectId = '1216624'
+        accessToken = providers.environmentVariable('CURSEFORGE_TOKEN')
         minecraftVersions.add(minecraft_version)
-        requires("create")
+        requires('fabric-api', 'create-fabric')
+        optional('jei', 'dye-depot', 'artsandcrafts')
         client = true
         server = true
     }
 
     modrinth {
-        projectId = "dzb1a5WV"
-        accessToken = providers.environmentVariable("MODRINTH_TOKEN")
+        projectId = 'dzb1a5WV'
+        accessToken = providers.environmentVariable('MODRINTH_TOKEN')
         minecraftVersions.add(minecraft_version)
-        requires("create")
+        requires('fabric-api', 'create-fabric')
+        optional('jei', 'dye-depot', 'artsandcrafts')
     }
 }
 
 tasks.withType(JavaCompile).configureEach {
-    options.encoding = "UTF-8"
+    options.encoding = 'UTF-8'
     options.release = 17
+    options.compilerArgs.addAll(['-Xmaxerrs', '10000'])
+}
+
+tasks.register('verifyCommonSourceIsolation') {
+    group = 'verification'
+    description = 'Rejects client-only imports from the common Fabric source set.'
+    inputs.files(sourceSets.main.allJava)
+    doLast {
+        def forbiddenImports = [
+                'net.minecraft.client.',
+                'com.mojang.blaze3d.',
+                'net.createmod.ponder.',
+                'mezz.jei.',
+                'plus.dragons.createdragonsplus.client.'
+        ]
+        def violations = []
+        inputs.files.files.sort().each { sourceFile ->
+            sourceFile.eachLine('UTF-8') { line, lineNumber ->
+                def trimmed = line.trim()
+                if (trimmed.startsWith('import ') && forbiddenImports.any { trimmed.contains(it) }) {
+                    violations.add("${sourceFile.path}:${lineNumber}: ${trimmed}")
+                }
+            }
+        }
+        if (!violations.isEmpty()) {
+            throw new GradleException('Client-only imports found in common sources:\n' + violations.join('\n'))
+        }
+    }
+}
+
+tasks.register('verifyFabricMigration') {
+    group = 'verification'
+    description = 'Rejects Forge/NeoForge loader code and legacy resource conditions from the Fabric artifact.'
+    inputs.files(sourceSets.main.allJava, sourceSets.client.allJava, sourceSets.main.resources,
+            files('src/main/resources/META-INF/mods.toml',
+                    'src/main/resources/META-INF/neoforge.mods.toml',
+                    'src/main/resources/META-INF/accesstransformer.cfg'))
+    doLast {
+        def violations = []
+        def allowedForgeConfigImports = [
+                'import net.minecraftforge.common.ForgeConfigSpec',
+                'import net.minecraftforge.fml.config.ModConfig'
+        ]
+        inputs.files.files.findAll { it.name.endsWith('.java') }.sort().each { sourceFile ->
+            sourceFile.eachLine('UTF-8') { line, lineNumber ->
+                def trimmed = line.trim()
+                if (trimmed.startsWith('import net.neoforged.')
+                        || (trimmed.startsWith('import net.minecraftforge.')
+                        && !allowedForgeConfigImports.any { trimmed.startsWith(it) })
+                        || line.contains('net/minecraftforge/')
+                        || line.contains('net/neoforged/')) {
+                    violations.add("${sourceFile.path}:${lineNumber}: ${trimmed}")
+                }
+            }
+        }
+        inputs.files.files.findAll { it.name.endsWith('.json') }.sort().each { resourceFile ->
+            def normalizedPath = resourceFile.path.replace('\\', '/')
+            if (normalizedPath.contains('/data/forge/') || normalizedPath.contains('/data/neoforge/')) {
+                violations.add("Legacy loader namespace remains: ${resourceFile.path}")
+            }
+            resourceFile.eachLine('UTF-8') { line, lineNumber ->
+                if (line.contains('"forge:') || line.contains('"neoforge:')) {
+                    violations.add("${resourceFile.path}:${lineNumber}: ${line.trim()}")
+                }
+            }
+        }
+        inputs.files.files.findAll {
+            it.exists() && it.name in ['mods.toml', 'neoforge.mods.toml', 'accesstransformer.cfg']
+        }.each { legacyFile ->
+            violations.add("Legacy loader resource remains: ${legacyFile.path}")
+        }
+        if (!violations.isEmpty()) {
+            throw new GradleException('Forge/NeoForge migration residue found:\n' + violations.join('\n'))
+        }
+    }
+}
+
+tasks.register('verifyFabricArtifact') {
+    group = 'verification'
+    description = 'Checks the remapped release jar for its expected name and excluded first-release integrations.'
+    dependsOn tasks.named('remapJar')
+    inputs.file(tasks.named('remapJar').flatMap { it.archiveFile })
+    doLast {
+        def artifact = inputs.files.singleFile
+        def expectedName = 'create-dragons-plus-fabric-1.20.1-1.11.4-fabric.1.jar'
+        if (artifact.name != expectedName) {
+            throw new GradleException("Unexpected Fabric artifact name: ${artifact.name}; expected ${expectedName}")
+        }
+        def forbiddenEntries = []
+        def archive = new java.util.zip.ZipFile(artifact)
+        try {
+            archive.entries().each { entry ->
+                def name = entry.name
+                if (name in ['META-INF/mods.toml', 'META-INF/neoforge.mods.toml', 'META-INF/accesstransformer.cfg']
+                        || name.startsWith('data/forge/')
+                        || name.startsWith('data/neoforge/')
+                        || name.contains('/mixin/forge/')
+                        || name.contains('/mixin/neoforge/')
+                        || name.contains('/integration/create_garnished/')
+                        || name.contains('/integration/immersive_engineering/')
+                        || name.contains('/integration/dyenamics/')) {
+                    forbiddenEntries.add(name)
+                }
+            }
+        } finally {
+            archive.close()
+        }
+        if (!forbiddenEntries.isEmpty()) {
+            throw new GradleException('Out-of-scope loader or integration content found in Fabric artifact:\n'
+                    + forbiddenEntries.join('\n'))
+        }
+    }
+}
+
+def cdpGameTestReport = layout.buildDirectory.file('junit.xml')
+tasks.named('runGametestServer').configure {
+    // Create Fabric 6.0.8.1 disables its own GameTests in upstream CI; validate our
+    // tests separately while retaining its suite as useful, non-gating coverage.
+    ignoreExitValue = true
+    doFirst {
+        cdpGameTestReport.get().asFile.delete()
+    }
+    finalizedBy 'verifyCDPGameTests'
+}
+
+tasks.register('verifyCDPGameTests') {
+    group = 'verification'
+    description = 'Requires every Create: Dragons Plus GameTest to be present and successful.'
+    inputs.file(cdpGameTestReport).optional()
+    doLast {
+        def reportFile = inputs.files.singleFile
+        if (!reportFile.isFile())
+            throw new GradleException("GameTest report was not produced: ${reportFile.path}")
+
+        def expectedTests = [
+                'cdpgametests.fanprocessingavailableafterreload',
+                'cdpgametests.dragonbreathvaporizationunits',
+                'cdpgametests.fluidhatchbucketroundtrip',
+                'cdpgametests.fluidunitsandtransactions',
+                'cdpgametests.recipessurviveexplicitreload',
+                'cdpgametests.registryids'
+        ]
+        def report = new groovy.util.XmlSlurper().parse(reportFile)
+        def testCases = report.depthFirst().findAll { it.name() == 'testcase' }
+        def failures = []
+        expectedTests.each { expectedName ->
+            def matches = testCases.findAll { it.@name.text() == expectedName }
+            if (matches.size() != 1) {
+                failures.add("${expectedName}: expected exactly one result, found ${matches.size()}")
+            } else if (!matches[0].failure.isEmpty() || !matches[0].error.isEmpty()) {
+                failures.add("${expectedName}: ${matches[0].failure.@message.text()}${matches[0].error.@message.text()}")
+            }
+        }
+        if (!failures.isEmpty())
+            throw new GradleException('Create: Dragons Plus GameTests failed:\n' + failures.join('\n'))
+    }
+}
+
+tasks.register('prepareClientJeiSmokeWorld', Sync) {
+    group = 'verification'
+    description = 'Copies the disposable GameTest world into the JEI client smoke-test save directory.'
+    dependsOn tasks.named('runGametestServer')
+    from layout.projectDirectory.dir("${runDirectory}/gametest/world")
+    into layout.projectDirectory.dir("${runDirectory}/client-jei-smoke/saves/CDPJeiSmoke")
+}
+
+tasks.named('runClientJeiSmoke').configure {
+    dependsOn tasks.named('prepareClientJeiSmokeWorld')
+}
+
+def serverSmokeEula = layout.projectDirectory.file("${runDirectory}/server-smoke/eula.txt")
+def serverSmokeProperties = layout.projectDirectory.file("${runDirectory}/server-smoke/server.properties")
+tasks.named('runServerSmoke').configure {
+    doFirst {
+        def eulaFile = serverSmokeEula.asFile
+        eulaFile.parentFile.mkdirs()
+        eulaFile.text = 'eula=true\n'
+        serverSmokeProperties.asFile.text = 'online-mode=true\nserver-ip=127.0.0.1\nserver-port=0\n'
+    }
+}
+
+tasks.named('check').configure {
+    dependsOn tasks.named('verifyCommonSourceIsolation')
+    dependsOn tasks.named('verifyFabricMigration')
+    dependsOn tasks.named('verifyFabricArtifact')
 }
 
 idea {

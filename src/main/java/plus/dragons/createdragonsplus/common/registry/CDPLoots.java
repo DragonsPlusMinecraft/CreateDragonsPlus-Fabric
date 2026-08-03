@@ -20,6 +20,7 @@ package plus.dragons.createdragonsplus.common.registry;
 
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import net.fabricmc.fabric.api.loot.v2.LootTableEvents;
 import net.minecraft.Util;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.storage.loot.BuiltInLootTables;
@@ -28,43 +29,35 @@ import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.entries.EmptyLootItem;
 import net.minecraft.world.level.storage.loot.entries.LootItem;
 import net.minecraft.world.level.storage.loot.providers.number.ConstantValue;
-import net.minecraftforge.event.LootTableLoadEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 import plus.dragons.createdragonsplus.config.CDPConfig;
 
-public class CDPLoots {
-    @Mod.EventBusSubscriber
-    public static class TableInjections {
-        public static final Object2IntMap<ResourceLocation> BLAZE_UPGRADE_SMITHING_TEMPLATE = Util.make(
-                new Object2IntOpenHashMap<>(),
-                map -> {
-                    map.put(BuiltInLootTables.BASTION_TREASURE, 1);
-                    map.put(BuiltInLootTables.BASTION_OTHER, 10);
-                    map.put(BuiltInLootTables.BASTION_BRIDGE, 10);
-                    map.put(BuiltInLootTables.BASTION_HOGLIN_STABLE, 10);
-                    map.put(BuiltInLootTables.NETHER_BRIDGE, 10);
-                });
+public final class CDPLoots {
+    private static final Object2IntMap<ResourceLocation> BLAZE_UPGRADE_SMITHING_TEMPLATE = Util.make(
+            new Object2IntOpenHashMap<>(),
+            map -> {
+                map.put(BuiltInLootTables.BASTION_TREASURE, 1);
+                map.put(BuiltInLootTables.BASTION_OTHER, 10);
+                map.put(BuiltInLootTables.BASTION_BRIDGE, 10);
+                map.put(BuiltInLootTables.BASTION_HOGLIN_STABLE, 10);
+                map.put(BuiltInLootTables.NETHER_BRIDGE, 10);
+            });
 
-        @SubscribeEvent
-        public static void onLootTableLoad(LootTableLoadEvent event) {
-            var name = event.getName();
-            var table = event.getTable();
-            if (CDPConfig.features().blazeUpgradeSmithingTemplate.get() &&
-                    BLAZE_UPGRADE_SMITHING_TEMPLATE.containsKey(name)) {
-                addBlazeUpgradeSmithingTemplate(table, BLAZE_UPGRADE_SMITHING_TEMPLATE.getInt(name));
-            }
-        }
-
-        private static void addBlazeUpgradeSmithingTemplate(LootTable table, int totalWeight) {
-            var pool = LootPool.lootPool()
-                    .name(CDPItems.BLAZE_UPGRADE_SMITHING_TEMPLATE.getId().toString())
-                    .setRolls(ConstantValue.exactly(1.0F))
-                    .add(LootItem.lootTableItem(CDPItems.BLAZE_UPGRADE_SMITHING_TEMPLATE).setWeight(1));
-            if (totalWeight > 1) {
-                pool.add(EmptyLootItem.emptyItem().setWeight(totalWeight - 1));
-            }
-            table.addPool(pool.build());
-        }
+    public static void register() {
+        LootTableEvents.MODIFY.register((resourceManager, lootManager, id, table, source) -> {
+            if (CDPConfig.features().blazeUpgradeSmithingTemplate.get()
+                    && BLAZE_UPGRADE_SMITHING_TEMPLATE.containsKey(id))
+                addBlazeUpgradeSmithingTemplate(table, BLAZE_UPGRADE_SMITHING_TEMPLATE.getInt(id));
+        });
     }
+
+    private static void addBlazeUpgradeSmithingTemplate(LootTable.Builder table, int totalWeight) {
+        LootPool.Builder pool = LootPool.lootPool()
+                .setRolls(ConstantValue.exactly(1.0F))
+                .add(LootItem.lootTableItem(CDPItems.BLAZE_UPGRADE_SMITHING_TEMPLATE).setWeight(1));
+        if (totalWeight > 1)
+            pool.add(EmptyLootItem.emptyItem().setWeight(totalWeight - 1));
+        table.withPool(pool);
+    }
+
+    private CDPLoots() {}
 }

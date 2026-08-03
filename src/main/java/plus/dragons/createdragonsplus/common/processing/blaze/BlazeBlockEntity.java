@@ -21,27 +21,16 @@ package plus.dragons.createdragonsplus.common.processing.blaze;
 import com.simibubi.create.content.processing.burner.BlazeBurnerBlock;
 import com.simibubi.create.content.processing.burner.BlazeBurnerBlock.HeatLevel;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
-import dev.engine_room.flywheel.api.visualization.VisualizationManager;
-import dev.engine_room.flywheel.lib.model.baked.PartialModel;
 import net.createmod.catnip.animation.LerpedFloat;
-import net.createmod.catnip.animation.LerpedFloat.Chaser;
-import net.createmod.catnip.math.AngleHelper;
 import net.createmod.catnip.math.VecHelper;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import org.jetbrains.annotations.Nullable;
 import plus.dragons.createdragonsplus.util.CodeReference;
 
 @CodeReference(value = BlazeBlockEntity.class, source = "create", license = "mit")
@@ -64,8 +53,7 @@ public abstract class BlazeBlockEntity extends SmartBlockEntity {
         super.tick();
         assert level != null;
         if (level.isClientSide) {
-            if (shouldTickAnimation())
-                tickAnimation();
+            BlazeClientHooks.tick(this);
             if (!isVirtual())
                 spawnParticles(getHeatLevelFromBlock());
             return;
@@ -74,55 +62,6 @@ public abstract class BlazeBlockEntity extends SmartBlockEntity {
         if (isCreative())
             return;
         updateBlockState();
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    protected @Nullable PartialModel getGogglesModel(HeatLevel heatLevel) {
-        return null;
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    protected @Nullable PartialModel getHatModel(HeatLevel heatLevel) {
-        return null;
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    protected boolean shouldTickAnimation() {
-        return !VisualizationManager.supportsVisualization(level);
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    protected void tickAnimation() {
-        boolean active = getHeatLevelFromBlock().isAtLeast(HeatLevel.FADING) && isActive();
-        if (active) {
-            headAngle.chase((AngleHelper.horizontalAngle(getBlockState()
-                    .getOptionalValue(BlazeBurnerBlock.FACING)
-                    .orElse(Direction.SOUTH)) + 180) % 360, .125f, Chaser.EXP);
-            headAngle.tickChaser();
-        } else {
-            float target = 0;
-            LocalPlayer player = Minecraft.getInstance().player;
-            if (player != null && !player.isInvisible()) {
-                double x;
-                double z;
-                if (isVirtual()) {
-                    x = -4;
-                    z = -10;
-                } else {
-                    x = player.getX();
-                    z = player.getZ();
-                }
-                double dx = x - (getBlockPos().getX() + 0.5);
-                double dz = z - (getBlockPos().getZ() + 0.5);
-                target = AngleHelper.deg(-Mth.atan2(dz, dx)) - 90;
-            }
-            target = headAngle.getValue() + AngleHelper.getShortestAngleDiff(headAngle.getValue(), target);
-            headAngle.chase(target, .25f, Chaser.exp(5));
-            headAngle.tickChaser();
-        }
-
-        headAnimation.chase(active ? 1 : 0, .25f, Chaser.exp(.25f));
-        headAnimation.tickChaser();
     }
 
     public HeatLevel getHeatLevelFromBlock() {

@@ -40,9 +40,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.gameevent.GameEvent;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import plus.dragons.createdragonsplus.common.fluids.dragonBreath.DragonBreathCauldronBlock;
 import plus.dragons.createdragonsplus.config.CDPConfig;
 
@@ -66,13 +63,10 @@ public class CDPCauldrons {
             .lang("Dragon's Breath Cauldron")
             .register();
 
-    public static void register(IEventBus modBus) {
-        modBus.register(CDPCauldrons.class);
-    }
+    public static void register() {}
 
-    @SubscribeEvent
-    public static void setup(final FMLCommonSetupEvent event) {
-        event.enqueueWork(CDPCauldrons::registerInteractions);
+    public static void initialize() {
+        registerInteractions();
     }
 
     private static void registerInteractions() {

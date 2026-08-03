@@ -1,4 +1,5 @@
 {
+  "replace": false,
   "values": [
     "create_dragons_plus:rare_blaze_package",
     "create_dragons_plus:rare_marble_gate_package"

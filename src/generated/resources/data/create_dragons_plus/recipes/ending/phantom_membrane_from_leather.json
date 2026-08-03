@@ -2,7 +2,7 @@
   "type": "create_dragons_plus:ending",
   "ingredients": [
     {
-      "tag": "forge:leather"
+      "tag": "c:leather"
     }
   ],
   "results": [

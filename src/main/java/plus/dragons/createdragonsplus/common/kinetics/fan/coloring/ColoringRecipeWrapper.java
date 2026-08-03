@@ -18,10 +18,10 @@
 
 package plus.dragons.createdragonsplus.common.kinetics.fan.coloring;
 
+import io.github.fabricators_of_create.porting_lib.transfer.item.ItemStackHandler;
+import io.github.fabricators_of_create.porting_lib.transfer.item.RecipeWrapper;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.items.ItemStackHandler;
-import net.minecraftforge.items.wrapper.RecipeWrapper;
 
 public class ColoringRecipeWrapper extends RecipeWrapper {
     private final ResourceLocation color;

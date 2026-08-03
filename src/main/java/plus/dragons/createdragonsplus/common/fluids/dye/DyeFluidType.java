@@ -18,36 +18,42 @@
 
 package plus.dragons.createdragonsplus.common.fluids.dye;
 
-import com.tterrag.registrate.builders.FluidBuilder.FluidTypeFactory;
-import java.util.function.Supplier;
+import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
+import io.github.fabricators_of_create.porting_lib.fluids.FluidType;
+import io.github.fabricators_of_create.porting_lib.fluids.sound.SoundActions;
 import net.createmod.catnip.theme.Color;
+import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.fluids.FluidStack;
 import org.joml.Vector3f;
+import plus.dragons.createdragonsplus.common.CDPCommon;
 import plus.dragons.createdragonsplus.common.fluids.SolidRenderFluidType;
 import plus.dragons.createdragonsplus.config.CDPConfig;
 
 public final class DyeFluidType extends SolidRenderFluidType {
     private final DyeVariant variant;
 
-    private DyeFluidType(Properties properties, ResourceLocation stillTexture, ResourceLocation flowingTexture, int tintColor, Vector3f fogColor, Supplier<Float> fogDistanceModifier, DyeVariant variant) {
-        super(properties, stillTexture, flowingTexture, tintColor, fogColor, fogDistanceModifier);
+    private DyeFluidType(Properties properties, ResourceLocation stillTexture, ResourceLocation flowingTexture,
+            int tintColor, Vector3f fogColor, DyeVariant variant) {
+        super(properties, stillTexture, flowingTexture, tintColor, fogColor, DyeFluidType::getVisibility);
         this.variant = variant;
     }
 
-    public static FluidTypeFactory create(DyeVariant variant) {
+    public static DyeFluidType create(DyeVariant variant, ResourceLocation stillTexture, ResourceLocation flowingTexture) {
         int rgbColor = variant.color();
         int tintColor = 0xFF000000 | rgbColor;
         Vector3f fogColor = new Color(rgbColor, false).asVectorF();
-        return (properties, stillTexture, flowingTexture) -> new DyeFluidType(properties,
-                stillTexture,
-                flowingTexture,
-                tintColor,
-                fogColor,
-                DyeFluidType::getVisibility,
-                variant);
+        FluidType.Properties properties = FluidType.Properties.create()
+                .descriptionId(Util.makeDescriptionId("fluid", CDPCommon.asResource(variant.fluidName())))
+                .fallDistanceModifier(0)
+                .canExtinguish(true)
+                .supportsBoating(true)
+                .sound(SoundActions.BUCKET_EMPTY, SoundEvents.BUCKET_EMPTY)
+                .sound(SoundActions.BUCKET_FILL, SoundEvents.BUCKET_FILL)
+                .sound(SoundActions.FLUID_VAPORIZE, SoundEvents.FIRE_EXTINGUISH);
+        return new DyeFluidType(properties, stillTexture, flowingTexture, tintColor, fogColor, variant);
     }
 
     private static float getVisibility() {
@@ -55,7 +61,7 @@ public final class DyeFluidType extends SolidRenderFluidType {
     }
 
     public DyeVariant getVariant() {
-        return this.variant;
+        return variant;
     }
 
     @Override

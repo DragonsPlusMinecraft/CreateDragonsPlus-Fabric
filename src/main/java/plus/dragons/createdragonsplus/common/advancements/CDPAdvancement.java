@@ -45,7 +45,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.block.Block;
-import net.minecraftforge.registries.RegisterEvent;
 import plus.dragons.createdragonsplus.common.advancements.criterion.BuiltinTrigger;
 import plus.dragons.createdragonsplus.common.advancements.criterion.StatTrigger;
 import plus.dragons.createdragonsplus.util.CodeReference;
@@ -85,7 +84,7 @@ public abstract class CDPAdvancement {
      * This method is a compromise to keep registration in order. </br>
      * You should make your own BuiltinTrigger registration after Advancement Registration,
      * or it will throw unregistered problem. </br>
-     * You can check {@link AllTriggers#register()} and {@link com.simibubi.create.Create#onRegister(RegisterEvent)}. <br>
+     * You can check {@link AllTriggers#register()} and Create's Fabric initialization order. <br>
      * 
      * @return A BuiltinTrigger
      */

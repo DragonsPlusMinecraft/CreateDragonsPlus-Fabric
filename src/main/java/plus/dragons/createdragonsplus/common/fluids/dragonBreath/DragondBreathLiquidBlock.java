@@ -31,7 +31,7 @@ import net.minecraft.world.level.material.FlowingFluid;
 
 public class DragondBreathLiquidBlock extends LiquidBlock {
     public DragondBreathLiquidBlock(Supplier<? extends FlowingFluid> fluid, Properties properties) {
-        super(fluid, properties);
+        super(fluid.get(), properties);
     }
 
     @Override

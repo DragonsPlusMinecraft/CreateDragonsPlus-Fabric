@@ -71,6 +71,7 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 import org.slf4j.Logger;
+import plus.dragons.createdragonsplus.common.entity.EntityPersistentData;
 import plus.dragons.createdragonsplus.common.fluids.dye.DyeVariant;
 import plus.dragons.createdragonsplus.common.registry.CDPItems;
 import plus.dragons.createdragonsplus.common.registry.CDPRecipes;
@@ -438,7 +439,8 @@ public class ColoringFanProcessingType implements FanProcessingType {
     }
 
     private boolean canApplyContactColoring(LivingEntity entity) {
-        CompoundTag nbt = PersistentDataHelper.getOrCreate(entity.getPersistentData(), PERSISTENT_DATA_KEY, "ContactColoring");
+        CompoundTag nbt = PersistentDataHelper.getOrCreate(
+                EntityPersistentData.get(entity), PERSISTENT_DATA_KEY, "ContactColoring");
         var color = this.variant.id().toString();
         if (nbt.contains("Color", Tag.TAG_STRING)
                 && nbt.getString("Color").equals(color)
@@ -493,7 +495,8 @@ public class ColoringFanProcessingType implements FanProcessingType {
     }
 
     private boolean processColoring(LivingEntity entity) {
-        CompoundTag nbt = PersistentDataHelper.getOrCreate(entity.getPersistentData(), PERSISTENT_DATA_KEY, "Coloring");
+        CompoundTag nbt = PersistentDataHelper.getOrCreate(
+                EntityPersistentData.get(entity), PERSISTENT_DATA_KEY, "Coloring");
         int sinceLastProcess = 0;
         if (!(nbt.contains("Color", Tag.TAG_STRING) && nbt.getString("Color").equals(this.variant.id().toString()))) {
             nbt.putString("Color", this.variant.id().toString());

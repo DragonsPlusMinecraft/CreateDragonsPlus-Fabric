@@ -26,7 +26,6 @@ import net.minecraft.server.ReloadableServerResources;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.item.crafting.RecipeType;
-import net.minecraftforge.common.MinecraftForge;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -48,7 +47,7 @@ public class ReloadableServerResourcesMixin {
         accessor.getRecipes().forEach((type, recipes) -> byType.put(type, new HashMap<>(recipes)));
         var byName = new HashMap<>(accessor.getByName());
         var event = new UpdateRecipesEvent(recipes, byType, byName);
-        MinecraftForge.EVENT_BUS.post(event);
+        UpdateRecipesEvent.EVENT.invoker().onUpdateRecipes(event);
         event.apply();
     }
 }

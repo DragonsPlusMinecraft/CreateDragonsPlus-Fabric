@@ -20,143 +20,101 @@ package plus.dragons.createdragonsplus.common.fluids.hatch;
 
 import com.simibubi.create.content.fluids.transfer.GenericItemFilling;
 import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
+import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
+import io.github.fabricators_of_create.porting_lib.transfer.MutableContainerItemContext;
+import io.github.fabricators_of_create.porting_lib.transfer.TransferUtil;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorage;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
+import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
+import net.fabricmc.fabric.api.transfer.v1.storage.StorageUtil;
+import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.FluidUtil;
-import net.minecraftforge.fluids.capability.IFluidHandler;
-import net.minecraftforge.fluids.capability.IFluidHandler.FluidAction;
-import net.minecraftforge.fluids.capability.IFluidHandlerItem;
+import org.jetbrains.annotations.Nullable;
 
-public class FluidHatchItemFluidTransfer {
-    public static TransferResult tryDrainItemToTank(ItemStack stack, IFluidHandler tankCapability, FilteringBehaviour filter) {
-        IFluidHandlerItem itemCapability = getItemFluidHandler(stack, false);
-        if (itemCapability == null)
+final class FluidHatchItemFluidTransfer {
+    static TransferResult tryDrainItemToTank(
+            ItemStack stack, Storage<FluidVariant> tank, FilteringBehaviour filter) {
+        ItemFluidStorage item = getItemFluidStorage(stack, false);
+        if (item == null)
             return TransferResult.EMPTY;
 
-        for (int i = 0; i < itemCapability.getTanks(); i++) {
-            FluidStack storedFluid = itemCapability.getFluidInTank(i);
-            if (storedFluid.isEmpty() || !filter.test(storedFluid))
+        for (var view : item.storage().nonEmptyViews()) {
+            FluidVariant variant = view.getResource();
+            if (variant.isBlank() || !filter.test(new FluidStack(variant, view.getAmount())))
                 continue;
-
-            FluidStack fluidToMove = getDrainableFluid(itemCapability, tankCapability, storedFluid);
-            if (fluidToMove.isEmpty())
-                continue;
-
-            FluidStack movedFluid = FluidUtil.tryFluidTransfer(tankCapability, itemCapability, fluidToMove, true);
-            if (movedFluid.isEmpty())
-                continue;
-
-            stack.shrink(1);
-            return new TransferResult(movedFluid, itemCapability.getContainer().copy());
+            try (Transaction transaction = Transaction.openOuter()) {
+                long moved = StorageUtil.move(
+                        item.storage(), tank, variant::equals, view.getAmount(), transaction);
+                if (moved <= 0)
+                    continue;
+                transaction.commit();
+                stack.shrink(1);
+                return new TransferResult(new FluidStack(variant, moved), getResult(item.context()));
+            }
         }
         return TransferResult.EMPTY;
     }
 
-    public static TransferResult tryFillItemFromTank(ItemStack stack, IFluidHandler tankCapability, FilteringBehaviour filter) {
-        IFluidHandlerItem itemCapability = getItemFluidHandler(stack, true);
-        if (itemCapability == null)
+    static TransferResult tryFillItemFromTank(
+            ItemStack stack, Storage<FluidVariant> tank, FilteringBehaviour filter) {
+        ItemFluidStorage item = getItemFluidStorage(stack, true);
+        if (item == null)
             return TransferResult.EMPTY;
 
-        for (int i = 0; i < tankCapability.getTanks(); i++) {
-            FluidStack storedFluid = tankCapability.getFluidInTank(i);
-            if (storedFluid.isEmpty() || !filter.test(storedFluid))
+        for (var view : tank.nonEmptyViews()) {
+            FluidVariant variant = view.getResource();
+            if (variant.isBlank() || !filter.test(new FluidStack(variant, view.getAmount())))
                 continue;
-
-            FluidStack fluidToMove = getFillableFluid(itemCapability, tankCapability, storedFluid);
-            if (fluidToMove.isEmpty())
-                continue;
-
-            FluidStack movedFluid = FluidUtil.tryFluidTransfer(itemCapability, tankCapability, fluidToMove, true);
-            if (movedFluid.isEmpty())
-                continue;
-
-            stack.shrink(1);
-            return new TransferResult(movedFluid, itemCapability.getContainer().copy());
+            try (Transaction transaction = Transaction.openOuter()) {
+                long moved = StorageUtil.move(
+                        tank, item.storage(), variant::equals, view.getAmount(), transaction);
+                if (moved <= 0)
+                    continue;
+                transaction.commit();
+                stack.shrink(1);
+                return new TransferResult(new FluidStack(variant, moved), getResult(item.context()));
+            }
         }
         return TransferResult.EMPTY;
     }
 
-    public static boolean canItemBeFilled(ItemStack stack) {
-        IFluidHandlerItem itemCapability = getItemFluidHandler(stack, true);
-        if (itemCapability == null)
-            return false;
-        for (int i = 0; i < itemCapability.getTanks(); i++) {
-            if (itemCapability.getFluidInTank(i).getAmount() < itemCapability.getTankCapacity(i))
-                return true;
-        }
-        return false;
+    static boolean canItemBeFilled(ItemStack stack) {
+        ItemFluidStorage item = getItemFluidStorage(stack, true);
+        return item != null && item.storage().supportsInsertion();
     }
 
-    public static boolean canItemBeEmptied(ItemStack stack) {
-        IFluidHandlerItem itemCapability = getItemFluidHandler(stack, false);
-        if (itemCapability == null)
-            return false;
-        for (int i = 0; i < itemCapability.getTanks(); i++) {
-            if (!itemCapability.getFluidInTank(i).isEmpty())
-                return true;
-        }
-        return false;
+    static boolean canItemBeEmptied(ItemStack stack) {
+        ItemFluidStorage item = getItemFluidStorage(stack, false);
+        return item != null && item.storage().supportsExtraction()
+                && item.storage().nonEmptyIterator().hasNext();
     }
 
-    private static FluidStack getDrainableFluid(
-            IFluidHandlerItem itemCapability, IFluidHandler tankCapability, FluidStack storedFluid) {
-        FluidStack availableFluid = storedFluid.copy();
-        int acceptableAmount = tankCapability.fill(availableFluid, FluidAction.SIMULATE);
-        if (acceptableAmount <= 0)
-            return FluidStack.EMPTY;
-
-        FluidStack requestedFluid = storedFluid.copy();
-        requestedFluid.setAmount(acceptableAmount);
-        FluidStack drainableFluid = itemCapability.drain(requestedFluid, FluidAction.SIMULATE);
-        if (drainableFluid.isEmpty())
-            return FluidStack.EMPTY;
-
-        int realAcceptableAmount = tankCapability.fill(drainableFluid.copy(), FluidAction.SIMULATE);
-        if (realAcceptableAmount <= 0)
-            return FluidStack.EMPTY;
-        if (realAcceptableAmount < drainableFluid.getAmount())
-            drainableFluid.setAmount(realAcceptableAmount);
-        return drainableFluid;
-    }
-
-    private static FluidStack getFillableFluid(
-            IFluidHandlerItem itemCapability, IFluidHandler tankCapability, FluidStack storedFluid) {
-        FluidStack availableFluid = storedFluid.copy();
-        int fillableAmount = itemCapability.fill(availableFluid, FluidAction.SIMULATE);
-        if (fillableAmount <= 0)
-            return FluidStack.EMPTY;
-
-        FluidStack requestedFluid = storedFluid.copy();
-        requestedFluid.setAmount(fillableAmount);
-        FluidStack drainableFluid = tankCapability.drain(requestedFluid, FluidAction.SIMULATE);
-        if (drainableFluid.isEmpty())
-            return FluidStack.EMPTY;
-
-        int realFillableAmount = itemCapability.fill(drainableFluid.copy(), FluidAction.SIMULATE);
-        if (realFillableAmount <= 0)
-            return FluidStack.EMPTY;
-        if (realFillableAmount < drainableFluid.getAmount())
-            drainableFluid.setAmount(realFillableAmount);
-        return drainableFluid;
-    }
-
-    private static IFluidHandlerItem getItemFluidHandler(ItemStack stack, boolean forFilling) {
+    private static @Nullable ItemFluidStorage getItemFluidStorage(ItemStack stack, boolean forFilling) {
         ItemStack split = stack.copy();
         split.setCount(1);
-        IFluidHandlerItem itemCapability = split.getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM).orElse(null);
-        if (itemCapability == null)
+        MutableContainerItemContext context = new MutableContainerItemContext(split);
+        Storage<FluidVariant> storage = context.find(FluidStorage.ITEM);
+        if (storage == null)
             return null;
-        if (forFilling && !GenericItemFilling.isFluidHandlerValid(split, itemCapability))
+        if (forFilling && !GenericItemFilling.isFluidHandlerValid(split, storage))
             return null;
-        return itemCapability;
+        return new ItemFluidStorage(context, storage);
     }
 
-    public record TransferResult(FluidStack fluidStack, ItemStack result) {
+    private static ItemStack getResult(MutableContainerItemContext context) {
+        return context.getItemVariant().toStack(TransferUtil.truncateLong(context.getAmount()));
+    }
+
+    private record ItemFluidStorage(
+            MutableContainerItemContext context, Storage<FluidVariant> storage) {}
+
+    record TransferResult(FluidStack fluidStack, ItemStack result) {
         public static final TransferResult EMPTY = new TransferResult(FluidStack.EMPTY, ItemStack.EMPTY);
 
         public boolean isEmpty() {
             return fluidStack.isEmpty();
         }
     }
+
+    private FluidHatchItemFluidTransfer() {}
 }

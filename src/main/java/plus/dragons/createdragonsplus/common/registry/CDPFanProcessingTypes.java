@@ -26,7 +26,6 @@ import java.util.function.Supplier;
 import net.minecraft.Util;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.eventbus.api.IEventBus;
 import plus.dragons.createdragonsplus.common.CDPCommon;
 import plus.dragons.createdragonsplus.common.fluids.dye.DyeVariantRegistry;
 import plus.dragons.createdragonsplus.common.kinetics.fan.coloring.ColoringFanProcessingType;
@@ -50,5 +49,5 @@ public class CDPFanProcessingTypes {
         return () -> type;
     }
 
-    public static void register(IEventBus modBus) {}
+    public static void register() {}
 }

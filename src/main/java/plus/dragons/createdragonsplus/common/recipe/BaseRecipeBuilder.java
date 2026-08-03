@@ -18,28 +18,27 @@
 
 package plus.dragons.createdragonsplus.common.recipe;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.tterrag.registrate.fabric.RegistryObject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
+import net.fabricmc.fabric.api.resource.conditions.v1.ConditionJsonProvider;
+import net.fabricmc.fabric.api.resource.conditions.v1.DefaultResourceConditions;
+import net.fabricmc.fabric.api.resource.conditions.v1.ResourceConditions;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.data.recipes.FinishedRecipe;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.crafting.Recipe;
-import net.minecraftforge.common.crafting.ConditionalRecipe;
-import net.minecraftforge.common.crafting.conditions.ICondition;
-import net.minecraftforge.common.crafting.conditions.ItemExistsCondition;
-import net.minecraftforge.common.crafting.conditions.ModLoadedCondition;
-import net.minecraftforge.common.crafting.conditions.NotCondition;
-import net.minecraftforge.common.crafting.conditions.OrCondition;
-import net.minecraftforge.common.crafting.conditions.TagEmptyCondition;
-import net.minecraftforge.registries.RegistryObject;
 import org.jetbrains.annotations.Nullable;
 
 public abstract class BaseRecipeBuilder<R extends Recipe<?>, B extends BaseRecipeBuilder<R, ?>> implements Consumer<Consumer<FinishedRecipe>> {
     protected final @Nullable String directory;
-    protected final List<ICondition> conditions = new ArrayList<>();
+    protected final List<ConditionJsonProvider> conditions = new ArrayList<>();
     protected @Nullable ResourceLocation id;
 
     protected BaseRecipeBuilder(@Nullable String directory) {
@@ -58,7 +57,7 @@ public abstract class BaseRecipeBuilder<R extends Recipe<?>, B extends BaseRecip
         return id;
     }
 
-    public List<ICondition> getConditions() {
+    public List<ConditionJsonProvider> getConditions() {
         return List.copyOf(conditions);
     }
 
@@ -76,12 +75,42 @@ public abstract class BaseRecipeBuilder<R extends Recipe<?>, B extends BaseRecip
             return;
         }
 
-        ConditionalRecipe.Builder conditional = ConditionalRecipe.builder();
-        conditions.forEach(conditional::addCondition);
-        conditional.addRecipe(recipe);
-        if (recipe.serializeAdvancement() != null)
-            conditional.generateAdvancement(recipe.getAdvancementId());
-        conditional.build(output, recipe.getId());
+        output.accept(new FinishedRecipe() {
+            private void addConditions(JsonObject json) {
+                JsonArray array = new JsonArray();
+                conditions.stream().map(ConditionJsonProvider::toJson).forEach(array::add);
+                json.add(ResourceConditions.CONDITIONS_KEY, array);
+            }
+
+            @Override
+            public void serializeRecipeData(JsonObject json) {
+                recipe.serializeRecipeData(json);
+                addConditions(json);
+            }
+
+            @Override
+            public ResourceLocation getId() {
+                return recipe.getId();
+            }
+
+            @Override
+            public net.minecraft.world.item.crafting.RecipeSerializer<?> getType() {
+                return recipe.getType();
+            }
+
+            @Override
+            public @Nullable JsonObject serializeAdvancement() {
+                JsonObject advancement = recipe.serializeAdvancement();
+                if (advancement != null)
+                    addConditions(advancement);
+                return advancement;
+            }
+
+            @Override
+            public @Nullable ResourceLocation getAdvancementId() {
+                return recipe.getAdvancementId();
+            }
+        });
     }
 
     public B withId(ResourceLocation id) {
@@ -89,36 +118,36 @@ public abstract class BaseRecipeBuilder<R extends Recipe<?>, B extends BaseRecip
         return builder();
     }
 
-    public B withCondition(ICondition condition) {
+    public B withCondition(ConditionJsonProvider condition) {
         conditions.add(condition);
         return builder();
     }
 
-    public final B withoutCondition(ICondition condition) {
-        conditions.add(new NotCondition(condition));
+    public final B withoutCondition(ConditionJsonProvider condition) {
+        conditions.add(DefaultResourceConditions.not(condition));
         return builder();
     }
 
-    public final B withAllCondition(ICondition... conditions) {
+    public final B withAllCondition(ConditionJsonProvider... conditions) {
         Collections.addAll(this.conditions, conditions);
         return builder();
     }
 
-    public final B withAnyCondition(ICondition... conditions) {
-        this.conditions.add(new OrCondition(conditions));
+    public final B withAnyCondition(ConditionJsonProvider... conditions) {
+        this.conditions.add(DefaultResourceConditions.or(conditions));
         return builder();
     }
 
     public final B withMod(String mod) {
-        return withCondition(new ModLoadedCondition(mod));
+        return withCondition(DefaultResourceConditions.allModsLoaded(mod));
     }
 
     public final B withoutMod(String mod) {
-        return withoutCondition(new ModLoadedCondition(mod));
+        return withoutCondition(DefaultResourceConditions.allModsLoaded(mod));
     }
 
     public final B withItem(ResourceLocation location) {
-        return withCondition(new ItemExistsCondition(location));
+        return withCondition(DefaultResourceConditions.registryContains(Registries.ITEM, location));
     }
 
     public final B withItem(RegistryObject<? extends Item> item) {
@@ -126,7 +155,7 @@ public abstract class BaseRecipeBuilder<R extends Recipe<?>, B extends BaseRecip
     }
 
     public final B withoutItem(ResourceLocation location) {
-        return withoutCondition(new ItemExistsCondition(location));
+        return withoutCondition(DefaultResourceConditions.registryContains(Registries.ITEM, location));
     }
 
     public final B withoutItem(RegistryObject<? extends Item> item) {
@@ -134,7 +163,7 @@ public abstract class BaseRecipeBuilder<R extends Recipe<?>, B extends BaseRecip
     }
 
     public final B withTag(ResourceLocation location) {
-        return withoutCondition(new TagEmptyCondition(location));
+        return withCondition(DefaultResourceConditions.tagsPopulated(TagKey.create(Registries.ITEM, location)));
     }
 
     public final B withTag(TagKey<Item> tag) {
@@ -142,7 +171,7 @@ public abstract class BaseRecipeBuilder<R extends Recipe<?>, B extends BaseRecip
     }
 
     public final B withoutTag(ResourceLocation location) {
-        return withCondition(new TagEmptyCondition(location));
+        return withoutCondition(DefaultResourceConditions.tagsPopulated(TagKey.create(Registries.ITEM, location)));
     }
 
     public final B withoutTag(TagKey<Item> tag) {

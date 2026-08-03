@@ -18,13 +18,15 @@
 
 package plus.dragons.createdragonsplus.config;
 
+import com.google.gson.JsonObject;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import net.createmod.catnip.config.ConfigBase;
+import net.fabricmc.fabric.api.resource.conditions.v1.ConditionJsonProvider;
+import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.api.metadata.CustomValue.CvType;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.common.crafting.conditions.ICondition;
-import net.minecraftforge.fml.ModList;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnmodifiableView;
 import plus.dragons.createdragonsplus.common.registry.CDPConditions;
@@ -49,11 +51,10 @@ public class FeaturesConfig extends ConfigBase {
     protected @Nullable Boolean getFeatureOverride(ResourceLocation id) {
         String key = id.toString();
         Boolean override = null;
-        for (var mod : ModList.get().getMods()) {
-            var properties = mod.getModProperties();
-            if (properties.get(key) instanceof Boolean flag) {
-                override = flag;
-            }
+        for (var mod : FabricLoader.getInstance().getAllMods()) {
+            var value = mod.getMetadata().getCustomValue(key);
+            if (value != null && value.getType() == CvType.BOOLEAN)
+                override = value.getAsBoolean();
         }
         return override;
     }
@@ -62,7 +63,7 @@ public class FeaturesConfig extends ConfigBase {
         return new ConfigFeature(name, enabled, comment);
     }
 
-    public class ConfigFeature extends ConfigBool implements ICondition {
+    public class ConfigFeature extends ConfigBool implements ConditionJsonProvider {
         private final ResourceLocation id;
         private final @Nullable Boolean override;
 
@@ -90,12 +91,12 @@ public class FeaturesConfig extends ConfigBase {
         }
 
         @Override
-        public boolean test(IContext context) {
-            return get();
+        public void writeParameters(JsonObject object) {
+            object.addProperty("feature", id.toString());
         }
 
         @Override
-        public ResourceLocation getID() {
+        public ResourceLocation getConditionId() {
             return CDPConditions.CONFIG_FEATURE_ID;
         }
     }

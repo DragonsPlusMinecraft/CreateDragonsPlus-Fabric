@@ -27,6 +27,7 @@ import com.simibubi.create.content.kinetics.mixer.MixingRecipe;
 import com.simibubi.create.content.processing.recipe.HeatCondition;
 import com.simibubi.create.content.processing.recipe.ProcessingRecipeBuilder;
 import com.simibubi.create.foundation.fluid.FluidIngredient;
+import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -35,26 +36,26 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraftforge.fluids.FluidStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import plus.dragons.createdragonsplus.common.CDPCommon;
+import plus.dragons.createdragonsplus.common.fluids.CDPFluidUnits;
 import plus.dragons.createdragonsplus.common.registry.CDPFluids;
 import plus.dragons.createdragonsplus.config.CDPConfig;
 
 @Mixin(value = PotionMixingRecipes.class, remap = false)
 public class PotionMixingRecipesMixin {
-    @WrapOperation(method = "createRecipes", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/fluids/potion/PotionMixingRecipes;createRecipe(Ljava/lang/String;Lnet/minecraft/world/item/crafting/Ingredient;Lnet/minecraftforge/fluids/FluidStack;Lnet/minecraftforge/fluids/FluidStack;)Lcom/simibubi/create/content/kinetics/mixer/MixingRecipe;", remap = false), remap = false)
+    @WrapOperation(method = "createRecipes", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/fluids/potion/PotionMixingRecipes;createRecipe(Ljava/lang/String;Lnet/minecraft/world/item/crafting/Ingredient;Lio/github/fabricators_of_create/porting_lib/fluids/FluidStack;Lio/github/fabricators_of_create/porting_lib/fluids/FluidStack;)Lcom/simibubi/create/content/kinetics/mixer/MixingRecipe;", remap = false), remap = false)
     private static MixingRecipe createRecipes$createDragonBreathFluidRecipe(String id, Ingredient ingredient, FluidStack fromFluid,
             FluidStack toFluid, Operation<MixingRecipe> original, @Local(name = "mixingRecipes") List<MixingRecipe> mixingRecipes) {
         if (CDPConfig.features().generateAutomaticBrewingRecipeForDragonBreathFluid.get()) {
             if (shouldCreateDragonBreathFluidRecipe(ingredient, fromFluid, toFluid)) {
                 var recipeId = CDPCommon.asResource(id + "_using_dragon_breath_fluid");
                 var recipe = new ProcessingRecipeBuilder<>(MixingRecipe::new, recipeId)
-                        .require(CDPFluids.COMMON_TAGS.dragonBreath, 250)
+                        .require(CDPFluids.COMMON_TAGS.dragonBreath, CDPFluidUnits.QUARTER_BUCKET)
                         .require(FluidIngredient.fromFluidStack(fromFluid))
                         .output(toFluid)
                         .requiresHeat(HeatCondition.HEATED)

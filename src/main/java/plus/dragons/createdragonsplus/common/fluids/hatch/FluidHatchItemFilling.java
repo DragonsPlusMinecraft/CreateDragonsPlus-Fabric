@@ -19,13 +19,13 @@
 package plus.dragons.createdragonsplus.common.fluids.hatch;
 
 import com.simibubi.create.content.fluids.transfer.GenericItemFilling;
+import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.fluids.FluidStack;
 
 public class FluidHatchItemFilling {
     private static final List<Handler> EXTRA_HANDLERS = new ArrayList<>();
@@ -43,7 +43,7 @@ public class FluidHatchItemFilling {
         return OptionalInt.empty();
     }
 
-    public static int getRequiredAmountForItem(Level level, ItemStack stack, FluidStack availableFluid) {
+    public static long getRequiredAmountForItem(Level level, ItemStack stack, FluidStack availableFluid) {
         var requiredAmount = getRequiredAmountForExtraHandler(stack, availableFluid);
         if (requiredAmount.isPresent())
             return requiredAmount.getAsInt();
@@ -59,10 +59,12 @@ public class FluidHatchItemFilling {
         return Optional.empty();
     }
 
-    public static ItemStack fillItem(Level level, int requiredAmount, ItemStack stack, FluidStack availableFluid) {
-        var result = fillItemWithExtraHandler(requiredAmount, stack, availableFluid);
-        if (result.isPresent())
-            return result.get();
+    public static ItemStack fillItem(Level level, long requiredAmount, ItemStack stack, FluidStack availableFluid) {
+        if (requiredAmount <= Integer.MAX_VALUE) {
+            var result = fillItemWithExtraHandler((int) requiredAmount, stack, availableFluid);
+            if (result.isPresent())
+                return result.get();
+        }
         return GenericItemFilling.fillItem(level, requiredAmount, stack, availableFluid);
     }
 

@@ -36,7 +36,7 @@ public class StandardDispenserBehaviour extends DefaultDispenseItemBehavior {
         DispensibleContainerItem dispensiblecontaineritem = (DispensibleContainerItem) itemStack.getItem();
         BlockPos blockpos = source.getPos().relative(source.getBlockState().getValue(DispenserBlock.FACING));
         Level level = source.getLevel();
-        if (dispensiblecontaineritem.emptyContents(null, level, blockpos, null, itemStack)) {
+        if (dispensiblecontaineritem.emptyContents(null, level, blockpos, null)) {
             dispensiblecontaineritem.checkExtraContent(null, level, itemStack, blockpos);
             return new ItemStack(Items.BUCKET);
         } else {

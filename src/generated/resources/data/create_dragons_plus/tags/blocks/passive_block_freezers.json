@@ -1,4 +1,5 @@
 {
+  "replace": false,
   "values": [
     "minecraft:snow_block",
     "minecraft:powder_snow",

@@ -18,36 +18,38 @@
 
 package plus.dragons.createdragonsplus.config;
 
+import fuzs.forgeconfigapiport.api.config.v2.ForgeConfigRegistry;
 import net.minecraft.Util;
 import net.minecraft.util.Unit;
 import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.config.ModConfig.Type;
-import net.minecraftforge.fml.event.config.ModConfigEvent;
+import plus.dragons.createdragonsplus.common.CDPCommon;
 
-public class CDPConfig {
+public final class CDPConfig {
     private static final CDPCommonConfig COMMON_CONFIG = new CDPCommonConfig();
     private static final CDPClientConfig CLIENT_CONFIG = new CDPClientConfig();
     private static final CDPServerConfig SERVER_CONFIG = new CDPServerConfig();
-    private static ForgeConfigSpec COMMON_SPEC;
-    private static ForgeConfigSpec CLIENT_SPEC;
-    private static ForgeConfigSpec SERVER_SPEC;
+    private static final ForgeConfigSpec COMMON_SPEC = createSpec(COMMON_CONFIG);
+    private static final ForgeConfigSpec CLIENT_SPEC = createSpec(CLIENT_CONFIG);
+    private static final ForgeConfigSpec SERVER_SPEC = createSpec(SERVER_CONFIG);
+    private static boolean registered;
 
-    public CDPConfig() {
-        var context = ModLoadingContext.get();
-        COMMON_SPEC = Util.make(new ForgeConfigSpec.Builder().configure(builder -> {
-            COMMON_CONFIG.registerAll(builder);
+    private CDPConfig() {}
+
+    private static ForgeConfigSpec createSpec(net.createmod.catnip.config.ConfigBase config) {
+        return new ForgeConfigSpec.Builder().configure(builder -> {
+            config.registerAll(builder);
             return Unit.INSTANCE;
-        }).getValue(), spec -> context.registerConfig(Type.COMMON, spec));
-        CLIENT_SPEC = Util.make(new ForgeConfigSpec.Builder().configure(builder -> {
-            CLIENT_CONFIG.registerAll(builder);
-            return Unit.INSTANCE;
-        }).getValue(), spec -> context.registerConfig(Type.CLIENT, spec));
-        SERVER_SPEC = Util.make(new ForgeConfigSpec.Builder().configure(builder -> {
-            SERVER_CONFIG.registerAll(builder);
-            return Unit.INSTANCE;
-        }).getValue(), spec -> context.registerConfig(Type.SERVER, spec));
+        }).getValue();
+    }
+
+    public static void register() {
+        if (registered)
+            return;
+        registered = true;
+        Util.make(COMMON_SPEC, spec -> ForgeConfigRegistry.INSTANCE.register(CDPCommon.ID, Type.COMMON, spec));
+        Util.make(CLIENT_SPEC, spec -> ForgeConfigRegistry.INSTANCE.register(CDPCommon.ID, Type.CLIENT, spec));
+        Util.make(SERVER_SPEC, spec -> ForgeConfigRegistry.INSTANCE.register(CDPCommon.ID, Type.SERVER, spec));
     }
 
     public static CDPCommonConfig common() {
@@ -72,27 +74,5 @@ public class CDPConfig {
 
     public static CDPDyeFluidConfig dyeFluid() {
         return SERVER_CONFIG.dyeFluid;
-    }
-
-    @SubscribeEvent
-    public void onLoad(ModConfigEvent.Loading event) {
-        var spec = event.getConfig().getSpec();
-        if (spec == COMMON_SPEC)
-            COMMON_CONFIG.onLoad();
-        else if (spec == CLIENT_SPEC)
-            CLIENT_CONFIG.onLoad();
-        else if (spec == SERVER_SPEC)
-            SERVER_CONFIG.onLoad();
-    }
-
-    @SubscribeEvent
-    public void onReload(ModConfigEvent.Reloading event) {
-        var spec = event.getConfig().getSpec();
-        if (spec == COMMON_SPEC)
-            COMMON_CONFIG.onReload();
-        else if (spec == CLIENT_SPEC)
-            CLIENT_CONFIG.onReload();
-        else if (spec == SERVER_SPEC)
-            SERVER_CONFIG.onReload();
     }
 }

@@ -1,28 +1,21 @@
 {
-  "type": "forge:conditional",
-  "recipes": [
+  "fabric:load_conditions": [
     {
-      "conditions": [
-        {
-          "type": "create_dragons_plus:config_feature",
-          "feature": "create_dragons_plus:block/fluid_hatch"
-        }
-      ],
-      "recipe": {
-        "type": "minecraft:crafting_shapeless",
-        "category": "misc",
-        "ingredients": [
-          {
-            "tag": "forge:ingots/copper"
-          },
-          {
-            "item": "create:item_drain"
-          }
-        ],
-        "result": {
-          "item": "create_dragons_plus:fluid_hatch"
-        }
-      }
+      "condition": "create_dragons_plus:config_feature",
+      "feature": "create_dragons_plus:block/fluid_hatch"
     }
-  ]
+  ],
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "tag": "c:ingots/copper"
+    },
+    {
+      "item": "create:item_drain"
+    }
+  ],
+  "result": {
+    "item": "create_dragons_plus:fluid_hatch"
+  }
 }

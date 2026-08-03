@@ -24,11 +24,12 @@ import net.minecraft.world.item.BottleItem;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
+import plus.dragons.createdragonsplus.common.entity.EntityPersistentData;
 
 @Mixin(BottleItem.class)
 public class BottleItemMixin {
     @ModifyArg(method = "use", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/Level;getEntitiesOfClass(Ljava/lang/Class;Lnet/minecraft/world/phys/AABB;Ljava/util/function/Predicate;)Ljava/util/List;"), index = 2)
     private Predicate<AreaEffectCloud> use$checkDragonBreathFluid(Predicate<AreaEffectCloud> original) {
-        return aoe -> aoe.getPersistentData().getBoolean("DragonBreath") || original.test(aoe);
+        return aoe -> EntityPersistentData.get(aoe).getBoolean("DragonBreath") || original.test(aoe);
     }
 }

@@ -21,14 +21,17 @@ package plus.dragons.createdragonsplus.mixin.create;
 import com.simibubi.create.content.fluids.transfer.FluidFillingBehaviour;
 import com.simibubi.create.content.fluids.transfer.FluidManipulationBehaviour;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
+import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
+import io.github.fabricators_of_create.porting_lib.transfer.callbacks.TransactionCallback;
+import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.material.Fluid;
-import net.minecraftforge.fluids.FluidStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import plus.dragons.createdragonsplus.common.fluids.CDPFluidUnits;
 
 @Mixin(value = FluidFillingBehaviour.class, remap = false)
 public abstract class FluidFillingBehaviourMixin extends FluidManipulationBehaviour {
@@ -37,15 +40,22 @@ public abstract class FluidFillingBehaviourMixin extends FluidManipulationBehavi
     }
 
     @ModifyVariable(method = "tryDeposit", at = @At(value = "STORE", ordinal = 0), name = "evaporate")
-    private boolean tryDeposite$isVaporizedOnPlacement(boolean vaporize, Fluid fluid, BlockPos root, boolean simulate) {
-        var fluidStack = new FluidStack(fluid, 1000);
-        return fluid.getFluidType().isVaporizedOnPlacement(getWorld(), getPos(), fluidStack);
+    private boolean tryDeposite$isVaporizedOnPlacement(
+            boolean vaporize, Fluid fluid, BlockPos root, TransactionContext transaction) {
+        var fluidStack = new FluidStack(fluid, CDPFluidUnits.BUCKET);
+        return vaporize || fluid.getFluidType().isVaporizedOnPlacement(getWorld(), root, fluidStack);
     }
 
-    @Inject(method = "tryDeposit", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/Level;playSound(Lnet/minecraft/world/entity/player/Player;DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FF)V"), cancellable = true)
-    private void tryDeposit$onVaporize(Fluid fluid, BlockPos root, boolean simulate, CallbackInfoReturnable<Boolean> cir) {
-        var fluidStack = new FluidStack(fluid, 1000);
-        fluid.getFluidType().onVaporize(null, getWorld(), root, fluidStack);
+    @Inject(method = "tryDeposit", at = @At(value = "INVOKE", target = "Lio/github/fabricators_of_create/porting_lib/transfer/callbacks/TransactionCallback;onSuccess(Lnet/fabricmc/fabric/api/transfer/v1/transaction/TransactionContext;Ljava/lang/Runnable;)Lio/github/fabricators_of_create/porting_lib/transfer/callbacks/TransactionSuccessCallback;"), cancellable = true)
+    private void tryDeposit$onVaporize(
+            Fluid fluid, BlockPos root, TransactionContext transaction,
+            CallbackInfoReturnable<Boolean> cir) {
+        var fluidStack = new FluidStack(fluid, CDPFluidUnits.BUCKET);
+        var type = fluid.getFluidType();
+        if (!type.isVaporizedOnPlacement(getWorld(), root, fluidStack))
+            return;
+        TransactionCallback.onSuccess(transaction,
+                () -> type.onVaporize(null, getWorld(), root, fluidStack.copy()));
         cir.setReturnValue(true);
     }
 }
