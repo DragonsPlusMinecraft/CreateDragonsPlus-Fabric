@@ -180,6 +180,11 @@ public class CDPRegistrate extends AbstractRegistrate<CDPRegistrate> {
         return this.registerForeignLocalization("en_us");
     }
 
+    @Nullable
+    public String getTemplateLocale() {
+        return templateLocale;
+    }
+
     public CDPRegistrate registerBuiltinLocalization(String name) {
         this.addDataGenerator(ProviderType.LANG, provider -> this.generateBuiltinLocalization(name, provider));
         return this;

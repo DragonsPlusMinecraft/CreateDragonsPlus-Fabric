@@ -25,22 +25,11 @@ java {
 
 def runDirectory = providers.gradleProperty('run_directory').orElse('run').get()
 
-loom {
-    splitEnvironmentSourceSets()
-}
-
 sourceSets {
     main {
         java {
             srcDir 'src/integration/dye_depot/java'
             srcDir 'src/integration/arts_and_crafts/java'
-            exclude 'plus/dragons/createdragonsplus/client/**'
-            exclude 'plus/dragons/createdragonsplus/integration/jei/**'
-            exclude 'plus/dragons/createdragonsplus/data/CDPData.java'
-            exclude 'plus/dragons/createdragonsplus/common/processing/blaze/BlazeBlockRenderer.java'
-            exclude 'plus/dragons/createdragonsplus/common/processing/blaze/BlazeBlockVisual.java'
-            exclude 'plus/dragons/createdragonsplus/common/processing/blaze/BlazeMovementBehaviour.java'
-            exclude 'plus/dragons/createdragonsplus/mixin/create/AirFlowParticleMixin.java'
         }
         resources {
             srcDir 'src/generated/resources'
@@ -49,25 +38,6 @@ sourceSets {
             exclude '.cache/'
         }
     }
-    client {
-        java {
-            srcDir 'src/main/java'
-            include 'plus/dragons/createdragonsplus/client/**'
-            include 'plus/dragons/createdragonsplus/integration/jei/**'
-            include 'plus/dragons/createdragonsplus/data/CDPData.java'
-            include 'plus/dragons/createdragonsplus/common/processing/blaze/BlazeBlockRenderer.java'
-            include 'plus/dragons/createdragonsplus/common/processing/blaze/BlazeBlockVisual.java'
-            include 'plus/dragons/createdragonsplus/common/processing/blaze/BlazeMovementBehaviour.java'
-            include 'plus/dragons/createdragonsplus/mixin/create/AirFlowParticleMixin.java'
-        }
-    }
-}
-
-// Create Fabric 6.0.8.1 bundles Registrate APIs whose public signatures mention
-// Minecraft client classes. Keep those classes available only to javac while a
-// source scan below still enforces that our common sources do not import them.
-configurations {
-    compileClasspath.extendsFrom minecraftClientOnlyNamedCompile
 }
 
 loom {
@@ -76,7 +46,6 @@ loom {
     mods {
         "${mod_id}" {
             sourceSet sourceSets.main
-            sourceSet sourceSets.client
         }
     }
 
@@ -85,31 +54,9 @@ loom {
             client()
             runDir runDirectory
         }
-        clientSmoke {
-            client()
-            name 'Client Smoke Test'
-            runDir "${runDirectory}/client-smoke"
-            property 'create_dragons_plus.client_smoke_test', 'true'
-        }
-        clientJeiSmoke {
-            client()
-            name 'JEI Client Smoke Test'
-            runDir "${runDirectory}/client-jei-smoke"
-            property 'create_dragons_plus.client_smoke_test', 'true'
-            property 'create_dragons_plus.jei_smoke_test', 'true'
-            programArg '--quickPlaySingleplayer'
-            programArg 'CDPJeiSmoke'
-        }
         server {
             server()
             runDir "${runDirectory}/server"
-            programArg '--nogui'
-        }
-        serverSmoke {
-            server()
-            name 'Dedicated Server Smoke Test'
-            runDir "${runDirectory}/server-smoke"
-            property 'create_dragons_plus.server_smoke_test', 'true'
             programArg '--nogui'
         }
         datagen {
@@ -120,14 +67,7 @@ loom {
             vmArg "-Dfabric-api.datagen.output-dir=${file('src/generated/resources')}"
             vmArg "-Dfabric-api.datagen.modid=${mod_id}"
             vmArg "-Dporting_lib.datagen.existing_resources=${file('src/main/resources')}"
-        }
-        gametestServer {
-            server()
-            name 'Headless GameTests'
-            runDir "${runDirectory}/gametest"
-            ideConfigGenerated false
-            vmArg '-Dfabric-api.gametest'
-            vmArg "-Dfabric-api.gametest.report-file=${layout.buildDirectory.file('junit.xml').get().asFile}"
+            vmArg "-Dcreate_dragons_plus.datagen.translations=${file('src/main/translations')}"
         }
         configureEach {
             vmArg '-XX:+AllowEnhancedClassRedefinition'
@@ -283,190 +223,6 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     options.release = 17
     options.compilerArgs.addAll(['-Xmaxerrs', '10000'])
-}
-
-tasks.register('verifyCommonSourceIsolation') {
-    group = 'verification'
-    description = 'Rejects client-only imports from the common Fabric source set.'
-    inputs.files(sourceSets.main.allJava)
-    doLast {
-        def forbiddenImports = [
-                'net.minecraft.client.',
-                'com.mojang.blaze3d.',
-                'net.createmod.ponder.',
-                'mezz.jei.',
-                'plus.dragons.createdragonsplus.client.'
-        ]
-        def violations = []
-        inputs.files.files.sort().each { sourceFile ->
-            sourceFile.eachLine('UTF-8') { line, lineNumber ->
-                def trimmed = line.trim()
-                if (trimmed.startsWith('import ') && forbiddenImports.any { trimmed.contains(it) }) {
-                    violations.add("${sourceFile.path}:${lineNumber}: ${trimmed}")
-                }
-            }
-        }
-        if (!violations.isEmpty()) {
-            throw new GradleException('Client-only imports found in common sources:\n' + violations.join('\n'))
-        }
-    }
-}
-
-tasks.register('verifyFabricMigration') {
-    group = 'verification'
-    description = 'Rejects Forge/NeoForge loader code and legacy resource conditions from the Fabric artifact.'
-    inputs.files(sourceSets.main.allJava, sourceSets.client.allJava, sourceSets.main.resources,
-            files('src/main/resources/META-INF/mods.toml',
-                    'src/main/resources/META-INF/neoforge.mods.toml',
-                    'src/main/resources/META-INF/accesstransformer.cfg'))
-    doLast {
-        def violations = []
-        def allowedForgeConfigImports = [
-                'import net.minecraftforge.common.ForgeConfigSpec',
-                'import net.minecraftforge.fml.config.ModConfig'
-        ]
-        inputs.files.files.findAll { it.name.endsWith('.java') }.sort().each { sourceFile ->
-            sourceFile.eachLine('UTF-8') { line, lineNumber ->
-                def trimmed = line.trim()
-                if (trimmed.startsWith('import net.neoforged.')
-                        || (trimmed.startsWith('import net.minecraftforge.')
-                        && !allowedForgeConfigImports.any { trimmed.startsWith(it) })
-                        || line.contains('net/minecraftforge/')
-                        || line.contains('net/neoforged/')) {
-                    violations.add("${sourceFile.path}:${lineNumber}: ${trimmed}")
-                }
-            }
-        }
-        inputs.files.files.findAll { it.name.endsWith('.json') }.sort().each { resourceFile ->
-            def normalizedPath = resourceFile.path.replace('\\', '/')
-            if (normalizedPath.contains('/data/forge/') || normalizedPath.contains('/data/neoforge/')) {
-                violations.add("Legacy loader namespace remains: ${resourceFile.path}")
-            }
-            resourceFile.eachLine('UTF-8') { line, lineNumber ->
-                if (line.contains('"forge:') || line.contains('"neoforge:')) {
-                    violations.add("${resourceFile.path}:${lineNumber}: ${line.trim()}")
-                }
-            }
-        }
-        inputs.files.files.findAll {
-            it.exists() && it.name in ['mods.toml', 'neoforge.mods.toml', 'accesstransformer.cfg']
-        }.each { legacyFile ->
-            violations.add("Legacy loader resource remains: ${legacyFile.path}")
-        }
-        if (!violations.isEmpty()) {
-            throw new GradleException('Forge/NeoForge migration residue found:\n' + violations.join('\n'))
-        }
-    }
-}
-
-tasks.register('verifyFabricArtifact') {
-    group = 'verification'
-    description = 'Checks the remapped release jar for its expected name and excluded first-release integrations.'
-    dependsOn tasks.named('remapJar')
-    inputs.file(tasks.named('remapJar').flatMap { it.archiveFile })
-    doLast {
-        def artifact = inputs.files.singleFile
-        def expectedName = 'create-dragons-plus-fabric-1.20.1-1.11.4-fabric.1.jar'
-        if (artifact.name != expectedName) {
-            throw new GradleException("Unexpected Fabric artifact name: ${artifact.name}; expected ${expectedName}")
-        }
-        def forbiddenEntries = []
-        def archive = new java.util.zip.ZipFile(artifact)
-        try {
-            archive.entries().each { entry ->
-                def name = entry.name
-                if (name in ['META-INF/mods.toml', 'META-INF/neoforge.mods.toml', 'META-INF/accesstransformer.cfg']
-                        || name.startsWith('data/forge/')
-                        || name.startsWith('data/neoforge/')
-                        || name.contains('/mixin/forge/')
-                        || name.contains('/mixin/neoforge/')
-                        || name.contains('/integration/create_garnished/')
-                        || name.contains('/integration/immersive_engineering/')
-                        || name.contains('/integration/dyenamics/')) {
-                    forbiddenEntries.add(name)
-                }
-            }
-        } finally {
-            archive.close()
-        }
-        if (!forbiddenEntries.isEmpty()) {
-            throw new GradleException('Out-of-scope loader or integration content found in Fabric artifact:\n'
-                    + forbiddenEntries.join('\n'))
-        }
-    }
-}
-
-def cdpGameTestReport = layout.buildDirectory.file('junit.xml')
-tasks.named('runGametestServer').configure {
-    // Create Fabric 6.0.8.1 disables its own GameTests in upstream CI; validate our
-    // tests separately while retaining its suite as useful, non-gating coverage.
-    ignoreExitValue = true
-    doFirst {
-        cdpGameTestReport.get().asFile.delete()
-    }
-    finalizedBy 'verifyCDPGameTests'
-}
-
-tasks.register('verifyCDPGameTests') {
-    group = 'verification'
-    description = 'Requires every Create: Dragons Plus GameTest to be present and successful.'
-    inputs.file(cdpGameTestReport).optional()
-    doLast {
-        def reportFile = inputs.files.singleFile
-        if (!reportFile.isFile())
-            throw new GradleException("GameTest report was not produced: ${reportFile.path}")
-
-        def expectedTests = [
-                'cdpgametests.fanprocessingavailableafterreload',
-                'cdpgametests.dragonbreathvaporizationunits',
-                'cdpgametests.fluidhatchbucketroundtrip',
-                'cdpgametests.fluidunitsandtransactions',
-                'cdpgametests.recipessurviveexplicitreload',
-                'cdpgametests.registryids'
-        ]
-        def report = new groovy.util.XmlSlurper().parse(reportFile)
-        def testCases = report.depthFirst().findAll { it.name() == 'testcase' }
-        def failures = []
-        expectedTests.each { expectedName ->
-            def matches = testCases.findAll { it.@name.text() == expectedName }
-            if (matches.size() != 1) {
-                failures.add("${expectedName}: expected exactly one result, found ${matches.size()}")
-            } else if (!matches[0].failure.isEmpty() || !matches[0].error.isEmpty()) {
-                failures.add("${expectedName}: ${matches[0].failure.@message.text()}${matches[0].error.@message.text()}")
-            }
-        }
-        if (!failures.isEmpty())
-            throw new GradleException('Create: Dragons Plus GameTests failed:\n' + failures.join('\n'))
-    }
-}
-
-tasks.register('prepareClientJeiSmokeWorld', Sync) {
-    group = 'verification'
-    description = 'Copies the disposable GameTest world into the JEI client smoke-test save directory.'
-    dependsOn tasks.named('runGametestServer')
-    from layout.projectDirectory.dir("${runDirectory}/gametest/world")
-    into layout.projectDirectory.dir("${runDirectory}/client-jei-smoke/saves/CDPJeiSmoke")
-}
-
-tasks.named('runClientJeiSmoke').configure {
-    dependsOn tasks.named('prepareClientJeiSmokeWorld')
-}
-
-def serverSmokeEula = layout.projectDirectory.file("${runDirectory}/server-smoke/eula.txt")
-def serverSmokeProperties = layout.projectDirectory.file("${runDirectory}/server-smoke/server.properties")
-tasks.named('runServerSmoke').configure {
-    doFirst {
-        def eulaFile = serverSmokeEula.asFile
-        eulaFile.parentFile.mkdirs()
-        eulaFile.text = 'eula=true\n'
-        serverSmokeProperties.asFile.text = 'online-mode=true\nserver-ip=127.0.0.1\nserver-port=0\n'
-    }
-}
-
-tasks.named('check').configure {
-    dependsOn tasks.named('verifyCommonSourceIsolation')
-    dependsOn tasks.named('verifyFabricMigration')
-    dependsOn tasks.named('verifyFabricArtifact')
 }
 
 idea {

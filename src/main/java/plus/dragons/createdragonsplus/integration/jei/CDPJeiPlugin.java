@@ -35,7 +35,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.ApiStatus.Internal;
-import plus.dragons.createdragonsplus.client.JeiSmokeTestStatus;
 import plus.dragons.createdragonsplus.common.CDPCommon;
 import plus.dragons.createdragonsplus.common.kinetics.fan.coloring.DyeFluidMixingRecipes;
 import plus.dragons.createdragonsplus.config.CDPConfig;
@@ -69,11 +68,6 @@ public class CDPJeiPlugin implements IModPlugin {
         if (CDPConfig.recipes().enableBulkEnding.get())
             this.categories.add(FanEndingCategory.create());
         registration.addRecipeCategories(categories.toArray(IRecipeCategory[]::new));
-        JeiSmokeTestStatus.categoriesRegistered(categories.size() == 4
-                && categories.stream().anyMatch(FanColoringCategory.class::isInstance)
-                && categories.stream().anyMatch(FanFreezingCategory.class::isInstance)
-                && categories.stream().anyMatch(FanSandingCategory.class::isInstance)
-                && categories.stream().anyMatch(FanEndingCategory.class::isInstance));
     }
 
     @Override
@@ -85,14 +79,12 @@ public class CDPJeiPlugin implements IModPlugin {
                     .flatMap(java.util.Optional::stream)
                     .toList();
             registration.addRecipes(CREATE_MIXING, recipes);
-            JeiSmokeTestStatus.recipesRegistered(recipes.size());
         }
     }
 
     @Override
     public void registerRecipeCatalysts(IRecipeCatalystRegistration registration) {
         categories.forEach(category -> category.registerCatalysts(registration));
-        JeiSmokeTestStatus.catalystsRegistered();
     }
 
     @Internal

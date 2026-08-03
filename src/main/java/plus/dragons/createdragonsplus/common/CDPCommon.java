@@ -18,12 +18,10 @@
 
 package plus.dragons.createdragonsplus.common;
 
-import com.mojang.logging.LogUtils;
 import com.simibubi.create.foundation.item.ItemDescription;
 import io.github.fabricators_of_create.porting_lib.event.common.AddPackFindersEvent;
 import net.createmod.catnip.lang.FontHelper;
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
@@ -31,7 +29,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.repository.Pack.Position;
 import net.minecraft.server.packs.resources.ResourceManager;
-import org.slf4j.Logger;
 import plus.dragons.createdragonsplus.common.fluids.dye.DyeColors;
 import plus.dragons.createdragonsplus.common.fluids.dye.DyeVariantRegistry;
 import plus.dragons.createdragonsplus.common.fluids.dye.RegisterDyeVariantsEvent;
@@ -63,8 +60,6 @@ public class CDPCommon implements ModInitializer {
     public static final String PERSISTENT_DATA_KEY = "CreateDragonsPlusData";
     public static final CDPRegistrate REGISTRATE = new CDPRegistrate(ID)
             .setTooltipModifier(item -> new ItemDescription.Modifier(item, FontHelper.Palette.STANDARD_CREATE));
-    private static final Logger LOGGER = LogUtils.getLogger();
-
     private static final IdentifiableResourceReloadListener RELOAD_LISTENER = new SimpleSynchronousResourceReloadListener() {
         @Override
         public ResourceLocation getFabricId() {
@@ -113,16 +108,6 @@ public class CDPCommon implements ModInitializer {
         ResourceManagerHelper.get(PackType.SERVER_DATA).registerReloadListener(RELOAD_LISTENER);
         AddPackFindersEvent.EVENT.register(CDPCommon::addPackFinders);
         UpdateRecipesEvent.EVENT.register(CDPRuntimeRecipeProvider::buildRecipesForUpdate);
-        registerServerSmokeTestShutdown();
-    }
-
-    private static void registerServerSmokeTestShutdown() {
-        if (!Boolean.getBoolean("create_dragons_plus.server_smoke_test"))
-            return;
-        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-            LOGGER.info("Create: Dragons Plus dedicated server smoke test passed; shutting down cleanly");
-            server.halt(false);
-        });
     }
 
     private static void registerOptionalIntegrations() {

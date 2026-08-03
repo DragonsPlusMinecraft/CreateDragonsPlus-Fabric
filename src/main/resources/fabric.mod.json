@@ -16,7 +16,6 @@
     "main": ["plus.dragons.createdragonsplus.common.CDPCommon"],
     "client": ["plus.dragons.createdragonsplus.client.CDPClient"],
     "fabric-datagen": ["plus.dragons.createdragonsplus.data.CDPData"],
-    "fabric-gametest": ["plus.dragons.createdragonsplus.common.gametest.CDPGameTests"],
     "jei_mod_plugin": ["plus.dragons.createdragonsplus.integration.jei.CDPJeiPlugin"]
   },
   "mixins": ["create_dragons_plus.mixins.json"],

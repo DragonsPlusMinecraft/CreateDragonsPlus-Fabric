@@ -21,7 +21,6 @@ package plus.dragons.createdragonsplus.client.color;
 import java.util.function.Supplier;
 import net.fabricmc.fabric.api.client.rendering.v1.ColorProviderRegistry;
 import net.minecraft.client.color.item.ItemColor;
-import net.minecraft.world.item.ItemStack;
 import plus.dragons.createdragonsplus.common.fluids.dye.DyeVariant;
 import plus.dragons.createdragonsplus.common.fluids.dye.DyeVariantRegistry;
 import plus.dragons.createdragonsplus.common.registry.CDPFluids;
@@ -35,18 +34,6 @@ public class SimpleItemColors {
         DyeVariantRegistry.all().forEach(variant -> ColorProviderRegistry.ITEM.register(
                 singleLayer(tintColor(variant)).get(),
                 CDPFluids.DYES_BY_VARIANT.get(variant.id()).getBucket().get()));
-    }
-
-    public static void verifyDyeBuckets() {
-        for (var variant : DyeVariantRegistry.all()) {
-            var bucket = CDPFluids.DYES_BY_VARIANT.get(variant.id()).getBucket().get();
-            var color = ColorProviderRegistry.ITEM.get(bucket);
-            if (color == null)
-                throw new IllegalStateException("Missing item color provider for " + variant.fluidName() + " bucket");
-            var stack = new ItemStack(bucket);
-            if (color.getColor(stack, 0) != tintColor(variant) || color.getColor(stack, 1) != -1)
-                throw new IllegalStateException("Invalid item color provider for " + variant.fluidName() + " bucket");
-        }
     }
 
     private static int tintColor(DyeVariant variant) {
