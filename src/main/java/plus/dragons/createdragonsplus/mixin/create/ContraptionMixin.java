@@ -22,7 +22,6 @@ import static plus.dragons.createdragonsplus.common.fluids.WaterAndLavaLoggedBlo
 
 import com.llamalad7.mixinextras.sugar.Local;
 import com.simibubi.create.content.contraptions.Contraption;
-import com.simibubi.create.content.contraptions.StructureTransform;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
@@ -31,13 +30,12 @@ import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Desc;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import plus.dragons.createdragonsplus.common.fluids.WaterAndLavaLoggedBlock;
 
 @Mixin(value = Contraption.class, remap = false)
 public abstract class ContraptionMixin {
-    @ModifyArg(target = @Desc(value = "removeBlocksFromWorld", args = { Level.class, BlockPos.class }), at = @At(value = "INVOKE", desc = @Desc(owner = Level.class, value = "setBlock", ret = boolean.class, args = { BlockPos.class, BlockState.class, int.class }), ordinal = 1), index = 1, remap = false)
+    @ModifyArg(method = "removeBlocksFromWorld", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/Level;setBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;I)Z", ordinal = 1, remap = true), index = 1, remap = false)
     private BlockState removeBlocksFromWorld$preserveContainedFluid(
             BlockState replacement, @Local BlockState oldState) {
         if (!(oldState.getBlock() instanceof WaterAndLavaLoggedBlock) || !oldState.hasProperty(FLUID))
@@ -49,7 +47,7 @@ public abstract class ContraptionMixin {
         };
     }
 
-    @ModifyArg(target = @Desc(value = "addBlocksToWorld", args = { Level.class, StructureTransform.class }), at = @At(value = "INVOKE", desc = @Desc(owner = Level.class, value = "setBlock", ret = boolean.class, args = { BlockPos.class, BlockState.class, int.class })), index = 1, remap = false)
+    @ModifyArg(method = "addBlocksToWorld", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/Level;setBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;I)Z", remap = true), index = 1, remap = false)
     private BlockState addBlocksToWorld$adoptFluidAtDestination(
             BlockState state,
             @Local(ordinal = 0) BlockPos targetPos,

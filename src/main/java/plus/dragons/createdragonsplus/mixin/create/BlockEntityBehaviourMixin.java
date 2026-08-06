@@ -25,7 +25,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Desc;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import plus.dragons.createdragonsplus.common.behaviours.BehaviourProvider;
@@ -33,7 +32,7 @@ import plus.dragons.createdragonsplus.common.registry.CDPCapabilities;
 
 @Mixin(value = BlockEntityBehaviour.class, remap = false)
 public class BlockEntityBehaviourMixin {
-    @Inject(target = @Desc(value = "get", ret = BlockEntityBehaviour.class, args = { BlockEntity.class, BehaviourType.class }), at = @At("HEAD"), cancellable = true, remap = false)
+    @Inject(method = "get(Lnet/minecraft/world/level/block/entity/BlockEntity;Lcom/simibubi/create/foundation/blockEntity/behaviour/BehaviourType;)Lcom/simibubi/create/foundation/blockEntity/behaviour/BlockEntityBehaviour;", at = @At("HEAD"), cancellable = true, remap = true)
     private static <T extends BlockEntityBehaviour> void get$getBehaviourProvider(
             BlockEntity blockEntity, BehaviourType<T> type, CallbackInfoReturnable<T> cir) {
         if (blockEntity == null || blockEntity instanceof SmartBlockEntity)
