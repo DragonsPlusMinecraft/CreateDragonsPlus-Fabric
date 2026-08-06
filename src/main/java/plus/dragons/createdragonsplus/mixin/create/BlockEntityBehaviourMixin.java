@@ -18,16 +18,14 @@
 
 package plus.dragons.createdragonsplus.mixin.create;
 
-import com.llamalad7.mixinextras.sugar.Local;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BehaviourType;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Desc;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import plus.dragons.createdragonsplus.common.behaviours.BehaviourProvider;
@@ -35,12 +33,19 @@ import plus.dragons.createdragonsplus.common.registry.CDPCapabilities;
 
 @Mixin(value = BlockEntityBehaviour.class, remap = false)
 public class BlockEntityBehaviourMixin {
-    @Inject(method = "get(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lcom/simibubi/create/foundation/blockEntity/behaviour/BehaviourType;)Lcom/simibubi/create/foundation/blockEntity/behaviour/BlockEntityBehaviour;", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/foundation/blockEntity/behaviour/BlockEntityBehaviour;get(Lnet/minecraft/world/level/block/entity/BlockEntity;Lcom/simibubi/create/foundation/blockEntity/behaviour/BehaviourType;)Lcom/simibubi/create/foundation/blockEntity/behaviour/BlockEntityBehaviour;"), cancellable = true)
-    private static <T extends BlockEntityBehaviour> void get$getSmartBlockEntityFromWrapper(BlockGetter blockGetter, BlockPos pos, BehaviourType<T> type, CallbackInfoReturnable<T> cir, @Local BlockEntity blockEntity) {
-        if (blockEntity != null && !(blockEntity instanceof SmartBlockEntity) && blockGetter instanceof Level level) {
-            BehaviourProvider provider = CDPCapabilities.BEHAVIOUR_PROVIDER.find(level, pos, null);
-            if (provider != null)
-                cir.setReturnValue(provider.getBehaviour(type));
-        }
+    @Inject(target = @Desc(value = "get", ret = BlockEntityBehaviour.class, args = { BlockEntity.class, BehaviourType.class }), at = @At("HEAD"), cancellable = true, remap = false)
+    private static <T extends BlockEntityBehaviour> void get$getBehaviourProvider(
+            BlockEntity blockEntity, BehaviourType<T> type, CallbackInfoReturnable<T> cir) {
+        if (blockEntity == null || blockEntity instanceof SmartBlockEntity)
+            return;
+        Level level = blockEntity.getLevel();
+        if (level == null)
+            return;
+        BehaviourProvider provider = CDPCapabilities.BEHAVIOUR_PROVIDER.find(level, blockEntity.getBlockPos(), null);
+        if (provider == null)
+            return;
+        T behaviour = provider.getBehaviour(type);
+        if (behaviour != null)
+            cir.setReturnValue(behaviour);
     }
 }

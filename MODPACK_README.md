@@ -102,7 +102,7 @@ When Arts & Crafts is loaded, `arts_and_crafts:bleachdew` supplies the
 it to Bulk Coloring; it is not a separate fan processing type.
 
 Dyenamics, Create: Garnished, and Immersive Engineering are outside the support scope of
-`1.11.4-fabric.1`.
+`1.11.4-p.2`.
 
 ## Configuration
 
