@@ -10,7 +10,7 @@ repositories {
 }
 
 dependencies {
-    modImplementation("plus.dragons.createdragonsplus:create-dragons-plus-fabric:${create_dragons_plus_version}")
+    modImplementation("plus.dragons.createdragonsplus:create-dragons-plus-fabric-${minecraft_version}:${create_dragons_plus_version}")
 }
 ```
 

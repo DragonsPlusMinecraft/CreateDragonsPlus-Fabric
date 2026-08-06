@@ -175,7 +175,7 @@ spotless {
 publishing {
     publications {
         register('mavenJava', MavenPublication) {
-            artifactId = mod_artifact_id
+            artifactId = "${mod_artifact_id}-${minecraft_version}"
             from components.java
         }
     }
