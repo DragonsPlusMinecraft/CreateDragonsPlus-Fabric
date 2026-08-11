@@ -18,8 +18,12 @@
 
 package plus.dragons.createdragonsplus.mixin.create;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
 import com.simibubi.create.api.effect.OpenPipeEffectHandler;
 import com.simibubi.create.content.fluids.OpenEndedPipe;
+import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
 import io.github.fabricators_of_create.porting_lib.transfer.callbacks.TransactionCallback;
 import io.github.fabricators_of_create.porting_lib.transfer.fluid.FluidTank;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
@@ -44,13 +48,23 @@ public abstract class OpenEndFluidHandlerMixin extends FluidTank {
         super(capacity);
     }
 
-    @Inject(method = "insert", at = @At("TAIL"))
+    @Inject(method = "insert", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/fluids/OpenEndedPipe$OpenEndFluidHandler;getFluidAmount()J"))
     private void insert$applyConsumingEffect(
             FluidVariant resource, long maxAmount, TransactionContext transaction,
-            CallbackInfoReturnable<Long> cir) {
-        OpenPipeEffectHandler handler = OpenPipeEffectHandler.REGISTRY.get(resource.getFluid());
+            CallbackInfoReturnable<Long> cir, @Local OpenPipeEffectHandler handler) {
         if (!(handler instanceof ConsumingOpenPipeEffectHandler consuming))
             return;
-        TransactionCallback.onSuccess(transaction, () -> setFluid(ConsumingOpenPipeEffectHandler.getRemainder(consuming, this$0, getFluid())));
+        FluidStack contained = getFluid().copy();
+        TransactionCallback.onSuccess(transaction,
+                () -> setFluid(ConsumingOpenPipeEffectHandler.getRemainder(consuming, this$0, contained)));
+    }
+
+    @WrapOperation(method = "insert", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/fluids/OpenEndedPipe;provideFluidToSpace(Lio/github/fabricators_of_create/porting_lib/fluids/FluidStack;Lnet/fabricmc/fabric/api/transfer/v1/transaction/TransactionContext;)Z", ordinal = 1))
+    private boolean insert$preventConsumingEffectPlacement(
+            OpenEndedPipe pipe, FluidStack fluid, TransactionContext transaction,
+            Operation<Boolean> original, @Local OpenPipeEffectHandler handler) {
+        if (handler instanceof ConsumingOpenPipeEffectHandler)
+            return false;
+        return original.call(pipe, fluid, transaction);
     }
 }
