@@ -48,7 +48,7 @@ import plus.dragons.createdragonsplus.config.CDPConfig;
 
 @Mixin(value = PotionMixingRecipes.class, remap = false)
 public class PotionMixingRecipesMixin {
-    @WrapOperation(method = "createRecipes", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/fluids/potion/PotionMixingRecipes;createRecipe(Ljava/lang/String;Lnet/minecraft/world/item/crafting/Ingredient;Lio/github/fabricators_of_create/porting_lib/fluids/FluidStack;Lio/github/fabricators_of_create/porting_lib/fluids/FluidStack;)Lcom/simibubi/create/content/kinetics/mixer/MixingRecipe;", remap = false), remap = false)
+    @WrapOperation(method = "createRecipes", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/fluids/potion/PotionMixingRecipes;createRecipe", remap = false), remap = false)
     private static MixingRecipe createRecipes$createDragonBreathFluidRecipe(String id, Ingredient ingredient, FluidStack fromFluid,
             FluidStack toFluid, Operation<MixingRecipe> original, @Local(name = "mixingRecipes") List<MixingRecipe> mixingRecipes) {
         if (CDPConfig.features().generateAutomaticBrewingRecipeForDragonBreathFluid.get()) {
