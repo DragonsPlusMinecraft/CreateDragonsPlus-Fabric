@@ -1,4 +1,4 @@
-# Create: Dragons Plus 1.1.7b
+# Create: Dragons Plus 1.11.7b
 
 ## Fixed
 
@@ -9,4 +9,4 @@
 ## Compatibility
 
 - Targets Java 17, Minecraft 1.20.1, Fabric Loader 0.17.2 or newer, Fabric API 0.92.6 or newer, and Create Fabric `>=6.0.8.1 <6.1.0`.
-- Supersedes 1.1.7 without registry, configuration, or save-format changes.
+- Supersedes 1.11.7 without registry, configuration, or save-format changes.
