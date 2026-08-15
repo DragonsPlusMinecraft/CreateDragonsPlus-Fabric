@@ -1,5 +1,5 @@
-# Create: Dragons Plus 1.11.7-d
+# Create: Dragons Plus 1.11.7-e
 
 ## Fixed
 
-- Fixed the Fluid Hatch recipe on Fabric 1.20.1 by using the correct `c:copper_ingots` convention tag. (#116)
+- Fixed namespace-sensitive Create mixin selectors crashing Fabric development clients while preserving production compatibility.

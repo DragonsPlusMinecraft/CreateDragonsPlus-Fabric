@@ -42,6 +42,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Coerce;
+import org.spongepowered.asm.mixin.injection.Desc;
 import plus.dragons.createdragonsplus.common.kinetics.fan.AirCurrentAccess;
 import plus.dragons.createdragonsplus.common.kinetics.fan.AirCurrentSegmentAccess;
 import plus.dragons.createdragonsplus.common.kinetics.fan.DynamicParticleFanProcessingType;
@@ -59,7 +60,7 @@ public class AirCurrentMixin implements AirCurrentAccess {
     @Shadow
     public boolean pushing;
 
-    @ModifyExpressionValue(method = "rebuild", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/kinetics/fan/processing/FanProcessingType;getAt", remap = false), remap = false)
+    @ModifyExpressionValue(method = "rebuild", at = @At(value = "INVOKE", desc = @Desc(owner = FanProcessingType.class, value = "getAt", args = { Level.class, BlockPos.class }, ret = FanProcessingType.class), remap = false), remap = false)
     private @Nullable FanProcessingType rebuild$checkDragonHead(@Nullable FanProcessingType original, @Local(name = "world") Level world, @Local(name = "currentPos") BlockPos currentPos) {
         var state = world.getBlockState(currentPos);
         var direction = source.getAirFlowDirection();
@@ -83,7 +84,7 @@ public class AirCurrentMixin implements AirCurrentAccess {
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    @WrapOperation(method = "tickAffectedEntities", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/kinetics/fan/processing/FanProcessingType;spawnProcessingParticles", remap = false), remap = false)
+    @WrapOperation(method = "tickAffectedEntities", at = @At(value = "INVOKE", desc = @Desc(owner = FanProcessingType.class, value = "spawnProcessingParticles", args = { Level.class, Vec3.class }), remap = false), remap = false)
     private void tickAffectedEntities$spawnProcessingParticlesWithParticleData(FanProcessingType type, Level level, Vec3 pos, Operation<Void> original, @Local(name = "entityDistance") double distance) {
         if (type instanceof DynamicParticleFanProcessingType dynamicType) {
             var segment = this.getSegmentAccessAt((float) distance);

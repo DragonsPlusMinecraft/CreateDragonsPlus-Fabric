@@ -30,6 +30,7 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Desc;
 import plus.dragons.createdragonsplus.common.kinetics.fan.AirCurrentAccess;
 import plus.dragons.createdragonsplus.common.kinetics.fan.DynamicParticleFanProcessingType;
 
@@ -40,7 +41,7 @@ public class AirFlowParticleMixin {
     private IAirCurrentSource source;
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/kinetics/fan/processing/FanProcessingType;morphAirFlow", remap = false), remap = true)
+    @WrapOperation(method = "tick", at = @At(value = "INVOKE", desc = @Desc(owner = FanProcessingType.class, value = "morphAirFlow", args = { AirFlowParticleAccess.class, RandomSource.class }), remap = false), remap = true)
     private void tick$morphAirFlowWithParticleData(FanProcessingType type, AirFlowParticleAccess particleAccess, RandomSource random, Operation<Void> original, @Local(name = "distance") double distance) {
         if (type instanceof DynamicParticleFanProcessingType dynamicType) {
             AirCurrentAccess airCurrent = (AirCurrentAccess) this.source.getAirCurrent();
