@@ -1,4 +1,5 @@
-# Create: Dragons Plus 1.11.7-c
+# Create: Dragons Plus 1.11.7-d
 
 ## Fixed
-- Replaced the invalid `1.11.7b` version metadata with the Fabric-compatible semantic version `1.11.7-c`.
+
+- Fixed the Fluid Hatch recipe on Fabric 1.20.1 by using the correct `c:copper_ingots` convention tag. (#116)

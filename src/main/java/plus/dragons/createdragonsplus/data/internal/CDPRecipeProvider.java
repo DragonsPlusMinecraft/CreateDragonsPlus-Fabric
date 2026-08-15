@@ -32,6 +32,7 @@ import com.tterrag.registrate.providers.RegistrateRecipeProvider;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
+import net.fabricmc.fabric.api.tag.convention.v1.ConventionalItemTags;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.recipes.FinishedRecipe;
@@ -44,8 +45,6 @@ import plus.dragons.createdragonsplus.common.kinetics.fan.freezing.FreezingRecip
 import plus.dragons.createdragonsplus.config.CDPConfig;
 
 public class CDPRecipeProvider extends RegistrateRecipeProvider {
-    private static final TagKey<Item> COPPER_INGOTS = TagKey.create(Registries.ITEM,
-            new ResourceLocation("c", "ingots/copper"));
     private static final TagKey<Item> LEATHER = TagKey.create(Registries.ITEM,
             new ResourceLocation("c", "leather"));
 
@@ -63,7 +62,7 @@ public class CDPRecipeProvider extends RegistrateRecipeProvider {
 
     private void buildMachineRecipes(Consumer<FinishedRecipe> output) {
         shapeless().output(FLUID_HATCH)
-                .require(COPPER_INGOTS)
+                .require(ConventionalItemTags.COPPER_INGOTS)
                 .require(ITEM_DRAIN)
                 .unlockedBy("has_item_drain", has(ITEM_DRAIN))
                 .withCondition(CDPConfig.features().fluidHatch)

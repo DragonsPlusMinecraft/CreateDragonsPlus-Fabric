@@ -9,7 +9,7 @@
   "category": "misc",
   "ingredients": [
     {
-      "tag": "c:ingots/copper"
+      "tag": "c:copper_ingots"
     },
     {
       "item": "create:item_drain"
