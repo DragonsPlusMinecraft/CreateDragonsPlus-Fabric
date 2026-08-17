@@ -1,5 +1,5 @@
-# Create: Dragons Plus 1.11.7-e
+# Create: Dragons Plus 1.11.7-f
 
 ## Fixed
 
-- Fixed namespace-sensitive Create mixin selectors crashing Fabric development clients while preserving production compatibility.
+- Fixed a crash when unloading chunks or leaving a world with Create: Power Grid and C2ME installed (#117).

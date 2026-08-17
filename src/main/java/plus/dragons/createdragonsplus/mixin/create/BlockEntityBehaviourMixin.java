@@ -40,7 +40,8 @@ public class BlockEntityBehaviourMixin {
         Level level = blockEntity.getLevel();
         if (level == null)
             return;
-        BehaviourProvider provider = CDPCapabilities.BEHAVIOUR_PROVIDER.find(level, blockEntity.getBlockPos(), null);
+        BehaviourProvider provider = CDPCapabilities.BEHAVIOUR_PROVIDER.find(
+                level, blockEntity.getBlockPos(), blockEntity.getBlockState(), blockEntity, null);
         if (provider == null)
             return;
         T behaviour = provider.getBehaviour(type);
