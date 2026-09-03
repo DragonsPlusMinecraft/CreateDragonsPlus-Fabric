@@ -19,9 +19,7 @@
 package plus.dragons.createdragonsplus.integration.jei;
 
 import com.google.common.base.Preconditions;
-import com.simibubi.create.Create;
 import com.simibubi.create.compat.jei.category.CreateRecipeCategory;
-import com.simibubi.create.content.processing.basin.BasinRecipe;
 import java.util.ArrayList;
 import java.util.List;
 import mezz.jei.api.IModPlugin;
@@ -36,8 +34,8 @@ import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.ApiStatus.Internal;
 import plus.dragons.createdragonsplus.common.CDPCommon;
-import plus.dragons.createdragonsplus.common.kinetics.fan.coloring.DyeFluidMixingRecipes;
 import plus.dragons.createdragonsplus.config.CDPConfig;
+import plus.dragons.createdragonsplus.integration.jei.category.AutomatedColoringCategory;
 import plus.dragons.createdragonsplus.integration.jei.category.FanColoringCategory;
 import plus.dragons.createdragonsplus.integration.jei.category.FanEndingCategory;
 import plus.dragons.createdragonsplus.integration.jei.category.FanFreezingCategory;
@@ -47,8 +45,6 @@ import plus.dragons.createdragonsplus.util.ErrorMessages;
 @JeiPlugin
 public class CDPJeiPlugin implements IModPlugin {
     public static final ResourceLocation ID = CDPCommon.asResource("jei_plugin");
-    private static final mezz.jei.api.recipe.RecipeType<BasinRecipe> CREATE_MIXING = new mezz.jei.api.recipe.RecipeType<>(
-            Create.asResource("mixing"), BasinRecipe.class);
     private final List<CreateRecipeCategory<?>> categories = new ArrayList<>();
 
     @Override
@@ -61,6 +57,8 @@ public class CDPJeiPlugin implements IModPlugin {
         this.categories.clear();
         if (CDPConfig.recipes().enableBulkColoring.get())
             this.categories.add(FanColoringCategory.create());
+        if (CDPConfig.features().dyeFluids.get())
+            this.categories.add(AutomatedColoringCategory.create());
         if (CDPConfig.recipes().enableBulkFreezing.get())
             this.categories.add(FanFreezingCategory.create());
         if (CDPConfig.recipes().enableBulkSanding.get())
@@ -73,13 +71,6 @@ public class CDPJeiPlugin implements IModPlugin {
     @Override
     public void registerRecipes(IRecipeRegistration registration) {
         categories.forEach(category -> category.registerRecipes(registration));
-        if (CDPConfig.features().dyeFluids.get()) {
-            var recipes = FanColoringCategory.getAllRecipes().stream()
-                    .map(DyeFluidMixingRecipes::createJeiRecipe)
-                    .flatMap(java.util.Optional::stream)
-                    .toList();
-            registration.addRecipes(CREATE_MIXING, recipes);
-        }
     }
 
     @Override

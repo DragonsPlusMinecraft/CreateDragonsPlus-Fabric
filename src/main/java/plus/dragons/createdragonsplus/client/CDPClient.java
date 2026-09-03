@@ -31,12 +31,15 @@ import plus.dragons.createdragonsplus.common.processing.blaze.BlazeClientHooks;
 import plus.dragons.createdragonsplus.common.registry.CDPBlockEntities;
 
 public class CDPClient implements ClientModInitializer {
+    public CDPClient() {
+        CDPPartialModels.register();
+    }
+
     @Override
     public void onInitializeClient() {
         CDPFluidRendering.register();
         SimpleItemColors.registerDyeBuckets();
         PonderIndex.addPlugin(new CDPPonderPlugin());
-        CDPPartialModels.register();
         BlazeClientHooks.registerTickHook(BlazeBlockEntityClient::tick);
         BlockEntityRendererRegistry.register(CDPBlockEntities.FLUID_HATCH.get(), SmartBlockEntityRenderer::new);
     }

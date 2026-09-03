@@ -37,7 +37,6 @@ import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.RecipeIngredientRole;
-import net.createmod.catnip.animation.AnimationTickHolder;
 import net.createmod.catnip.gui.element.GuiGameElement;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
@@ -59,7 +58,6 @@ import plus.dragons.createdragonsplus.data.internal.CDPLang;
 import plus.dragons.createdragonsplus.integration.CDPIntegrationContributions;
 import plus.dragons.createdragonsplus.integration.jei.CDPJeiPlugin;
 import plus.dragons.createdragonsplus.integration.jei.widget.FanProcessingIcon;
-import plus.dragons.createdragonsplus.util.FieldsNullabilityUnknownByDefault;
 
 public class FanColoringCategory extends ProcessingViaFanCategory<ColoringRecipe> {
     public static final mezz.jei.api.recipe.RecipeType<ColoringRecipe> TYPE = new mezz.jei.api.recipe.RecipeType<>(
@@ -93,6 +91,7 @@ public class FanColoringCategory extends ProcessingViaFanCategory<ColoringRecipe
                                 new FluidStack((Fluid) dyeFluid.getSource(), CDPFluidUnits.BUCKET)));
         dyeFluid.getBucket().ifPresent(bucket -> builder.addInvisibleIngredients(RecipeIngredientRole.CATALYST)
                 .addItemStack(new ItemStack(bucket)));
+        DyeFluidCategoryHelper.addDyeItemLookupAlias(builder, recipe.getColor());
     }
 
     @Override
@@ -242,20 +241,10 @@ public class FanColoringCategory extends ProcessingViaFanCategory<ColoringRecipe
         return copy;
     }
 
-    @FieldsNullabilityUnknownByDefault
     protected static class Icon extends FanProcessingIcon {
-        private ItemStack[] catalystStacks;
-
         @Override
         protected ItemStack getCatalyst() {
-            if (catalystStacks == null) {
-                catalystStacks = DyeVariantRegistry.all().stream()
-                        .map(variant -> CDPFluids.DYES_BY_VARIANT.get(variant.id()))
-                        .flatMap(entry -> entry.getBucket().stream())
-                        .map(ItemStack::new)
-                        .toArray(ItemStack[]::new);
-            }
-            return catalystStacks[(AnimationTickHolder.getTicks() / 20) % catalystStacks.length];
+            return DyeFluidCategoryHelper.getDyeBucketIcon();
         }
     }
 }

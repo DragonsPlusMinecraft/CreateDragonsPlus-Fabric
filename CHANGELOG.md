@@ -1,5 +1,9 @@
-# Create: Dragons Plus 1.11.7-f
+# Create: Dragons Plus 1.11.8
+
+## Added
+
+- Added a dedicated Automated Coloring JEI category for Mechanical Mixer recipes using Dye Fluid. Dye items and equivalent items in their dye item tags now link to both Automated Coloring and Bulk Coloring recipes, and the new tab uses a rotating dye bucket badge. (#120)
 
 ## Fixed
 
-- Fixed a crash when unloading chunks or leaving a world with Create: Power Grid and C2ME installed (#117).
+- Fixed placing rare packages crashing the client because their package models were registered after model loading. (#126)
